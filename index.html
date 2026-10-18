@@ -1,0 +1,4213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="脑机接口解码与轮椅控制虚拟仿真实验：从运动想象解码到二维轮椅运动控制的完整实验介绍与操作入口。">
+  <meta name="theme-color" content="#07111f">
+  <title>脑机接口解码与轮椅控制虚拟仿真实验</title>
+  <style>
+    /* =========================================================
+       1. Tokens & reset
+       ========================================================= */
+    :root {
+      --max: 1240px;
+      --ink: #08111f;
+      --ink-2: #0d1729;
+      --ink-3: #122039;
+      --paper: #ffffff;
+      --page: #f5f8fc;
+      --page-2: #eef4fa;
+      --text: #4f5d74;
+      --muted: #7c899e;
+      --line: #e1e8f2;
+      --line-dark: rgba(158, 183, 210, .16);
+      --mint: #55e6c4;
+      --mint-strong: #20cda6;
+      --cyan: #58c8ff;
+      --violet: #8d7dff;
+      --coral: #ff7f66;
+      --amber: #ffc86b;
+      --blue: #3168dd;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 9px;
+      --mono: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      --shadow-sm: 0 10px 30px rgba(19, 40, 75, .06);
+      --shadow-md: 0 24px 60px rgba(17, 37, 70, .1);
+      --shadow-lg: 0 36px 90px rgba(2, 9, 24, .4);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 92px;
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+      background: var(--page);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    ::selection {
+      background: rgba(85, 230, 196, .38);
+      color: #07111f;
+    }
+
+    h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
+    ul, ol { padding: 0; list-style: none; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    canvas { display: block; }
+
+    :focus-visible {
+      outline: 3px solid rgba(85, 230, 196, .85);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    [id] { scroll-margin-top: 0; }
+
+    .container {
+      width: min(calc(100% - 48px), var(--max));
+      margin-inline: auto;
+    }
+
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .icon {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 300;
+      left: 18px;
+      top: -70px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      background: var(--mint);
+      color: #04130f;
+      font-size: 13px;
+      font-weight: 700;
+      transition: top .2s ease;
+    }
+    .skip-link:focus { top: 14px; }
+
+    /* =========================================================
+       2. Shared components
+       ========================================================= */
+    .eyebrow,
+    .section-kicker,
+    .card-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .16em;
+      line-height: 1.4;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      padding: 7px 11px;
+      border: 1px solid rgba(85, 230, 196, .24);
+      border-radius: 999px;
+      background: rgba(85, 230, 196, .06);
+      color: #86f4db;
+    }
+
+    .pulse-dot,
+    .live-dot {
+      position: relative;
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 0 4px rgba(85, 230, 196, .1);
+    }
+
+    .pulse-dot::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border: 1px solid rgba(85, 230, 196, .5);
+      border-radius: 50%;
+      animation: pulse 2.2s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(.55); opacity: 1; }
+      75%, 100% { transform: scale(1.7); opacity: 0; }
+    }
+
+    .section {
+      position: relative;
+      padding: 98px 0;
+    }
+
+    .section-dark {
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 82% 12%, rgba(78, 79, 190, .17), transparent 40%),
+        radial-gradient(ellipse at 10% 82%, rgba(26, 151, 139, .1), transparent 38%),
+        #07111f;
+      color: #dbe6f5;
+    }
+
+    .section-dark::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .3;
+      background-image:
+        linear-gradient(rgba(137, 166, 196, .12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(137, 166, 196, .12) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,.9), transparent 72%);
+    }
+
+    .section-dark > .container {
+      position: relative;
+      z-index: 1;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 440px;
+      gap: 42px;
+      align-items: end;
+      margin-bottom: 48px;
+    }
+
+    .section-kicker {
+      margin-bottom: 12px;
+      color: #238b7a;
+    }
+
+    .section-title {
+      color: var(--ink);
+      font-size: clamp(32px, 3.4vw, 46px);
+      font-weight: 700;
+      letter-spacing: -.045em;
+      line-height: 1.2;
+    }
+
+    .section-sub {
+      max-width: 440px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .section-dark .section-kicker { color: var(--mint); }
+    .section-dark .section-title { color: #f2f7ff; }
+    .section-dark .section-sub { color: #8d9db5; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 46px;
+      padding: 0 20px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+      transition: transform .2s ease, background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+    }
+
+    .btn .icon { width: 17px; height: 17px; }
+
+    .btn-primary {
+      background: var(--mint);
+      color: #041410;
+      box-shadow: 0 10px 24px rgba(48, 214, 179, .18);
+    }
+
+    .btn-primary:hover {
+      background: #78f0d5;
+      transform: translateY(-2px);
+      box-shadow: 0 16px 32px rgba(48, 214, 179, .26);
+    }
+
+    .btn-ghost {
+      border-color: rgba(197, 218, 240, .23);
+      background: rgba(255, 255, 255, .035);
+      color: #dbe8f5;
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(85, 230, 196, .55);
+      background: rgba(85, 230, 196, .07);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+
+    .btn-lg {
+      min-height: 52px;
+      padding: 0 24px;
+      border-radius: 11px;
+      font-size: 14px;
+    }
+
+    .btn-sm {
+      min-height: 38px;
+      padding: 0 15px;
+      font-size: 12.5px;
+      border-radius: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 22px;
+      padding: 2px 7px;
+      border: 1px solid #e0e8f2;
+      border-radius: 4px;
+      background: #f6f9fc;
+      color: #728097;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: .03em;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .tag.mint {
+      border-color: #ccefe7;
+      background: #eefbf7;
+      color: #137b6a;
+    }
+
+    .tag.amber {
+      border-color: #f3e2c2;
+      background: #fff9ee;
+      color: #9a6c20;
+    }
+
+    .tag.coral {
+      border-color: #f6d9d3;
+      background: #fff4f1;
+      color: #a44e3e;
+    }
+
+    /* =========================================================
+       3. Header
+       ========================================================= */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 13, 25, .78);
+      border-bottom: 1px solid rgba(160, 188, 214, .08);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: background .25s ease, box-shadow .25s ease;
+    }
+
+    .site-header.is-scrolled {
+      background: rgba(6, 11, 21, .96);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, .24);
+    }
+
+    .header-inner {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      flex: 0 0 auto;
+      color: #f4f9ff;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(85, 230, 196, .42);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 28%, rgba(85, 230, 196, .19), rgba(85, 230, 196, .03));
+      color: var(--mint);
+      box-shadow: inset 0 0 18px rgba(85, 230, 196, .08);
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border: 1px dashed rgba(85, 230, 196, .3);
+      border-radius: 50%;
+    }
+
+    .brand-mark .icon { width: 20px; height: 20px; }
+
+    .brand-copy strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: .04em;
+      line-height: 1.4;
+    }
+
+    .brand-copy span {
+      display: block;
+      margin-top: 1px;
+      color: #6d7d94;
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .13em;
+      line-height: 1.3;
+    }
+
+    .main-nav {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .main-nav a {
+      position: relative;
+      padding: 9px 0;
+      color: #93a2b8;
+      font-size: 12.5px;
+      transition: color .2s ease;
+    }
+
+    .main-nav a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 2px;
+      height: 1px;
+      background: var(--mint);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .2s ease;
+    }
+
+    .main-nav a:hover,
+    .main-nav a.is-active { color: #f5faff; }
+
+    .main-nav a.is-active::after,
+    .main-nav a:hover::after { transform: scaleX(1); }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: 8px;
+    }
+
+    .platform-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 8px;
+      background: var(--mint);
+      color: #04130f;
+      font-size: 12.5px;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(38, 201, 165, .16);
+      transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+
+    .platform-btn .icon { width: 14px; height: 14px; }
+
+    .platform-btn:hover {
+      background: #7cf1d8;
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(38, 201, 165, .24);
+    }
+
+    .nav-toggle {
+      display: none;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 1px solid rgba(177, 203, 226, .18);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .035);
+      color: #e9f4ff;
+      cursor: pointer;
+      place-items: center;
+    }
+
+    .nav-toggle .icon { width: 19px; height: 19px; }
+
+    /* =========================================================
+       4. Hero
+       ========================================================= */
+    .hero {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 77% 27%, rgba(60, 79, 188, .27), transparent 32%),
+        radial-gradient(circle at 17% 93%, rgba(41, 179, 153, .12), transparent 30%),
+        linear-gradient(118deg, #060a15 0%, #091326 48%, #071724 100%);
+      color: #f2f7ff;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      opacity: .38;
+      background-image:
+        linear-gradient(rgba(139, 170, 201, .13) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(139, 170, 201, .13) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(ellipse at 60% 40%, #000 12%, transparent 72%);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 620px;
+      height: 620px;
+      right: -220px;
+      top: 10px;
+      border: 1px solid rgba(112, 148, 220, .17);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 82px rgba(75, 103, 183, .05),
+        0 0 0 164px rgba(75, 103, 183, .025);
+      pointer-events: none;
+    }
+
+    .hero-ghost {
+      position: absolute;
+      z-index: -1;
+      right: -10px;
+      top: 160px;
+      color: rgba(192, 217, 255, .018);
+      font-family: var(--mono);
+      font-size: clamp(140px, 18vw, 320px);
+      font-weight: 700;
+      letter-spacing: -.1em;
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(420px, .92fr);
+      gap: 62px;
+      align-items: center;
+      padding: 76px 0 48px;
+    }
+
+    .hero-copy { min-width: 0; }
+
+    .hero h1 {
+      max-width: 760px;
+      margin-top: 22px;
+      color: #f8fbff;
+      font-size: clamp(42px, 4.5vw, 65px);
+      font-weight: 700;
+      letter-spacing: -.06em;
+      line-height: 1.14;
+      text-wrap: balance;
+    }
+
+    .title-accent {
+      color: transparent;
+      background: linear-gradient(96deg, #71f2d5 8%, #72d8ff 90%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .hero-lead {
+      max-width: 610px;
+      margin-top: 23px;
+      color: #aab8ce;
+      font-size: 15.5px;
+      line-height: 1.9;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 22px;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border: 1px solid rgba(163, 192, 219, .16);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, .035);
+      color: #aab8cc;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      letter-spacing: .02em;
+    }
+
+    .hero-tag .icon { width: 12px; height: 12px; color: var(--mint); }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .hero-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      margin-top: 17px;
+      color: #6f8099;
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    .hero-note .icon {
+      width: 13px;
+      height: 13px;
+      margin-top: 2px;
+      color: #6da99e;
+    }
+
+    .hero-visual {
+      min-width: 0;
+      justify-self: end;
+      width: 100%;
+      max-width: 530px;
+      animation: hero-rise .8s cubic-bezier(.2, .7, .2, 1) both;
+    }
+
+    @keyframes hero-rise {
+      from { opacity: 0; transform: translateY(22px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .preview-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(136, 166, 201, .2);
+      border-radius: 19px;
+      background: linear-gradient(165deg, rgba(15, 27, 48, .93), rgba(6, 14, 26, .97));
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255, 255, 255, .04);
+    }
+
+    .preview-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 18% 0%, rgba(85, 230, 196, .09), transparent 32%);
+    }
+
+    .preview-topbar {
+      position: relative;
+      z-index: 1;
+      height: 43px;
+      padding: 0 15px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      border-bottom: 1px solid rgba(139, 168, 199, .13);
+      color: #788ba4;
+      font-family: var(--mono);
+      font-size: 8.5px;
+      letter-spacing: .11em;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .window-dots i {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #38475c;
+    }
+
+    .window-dots i:first-child { background: #ff8168; }
+    .window-dots i:nth-child(2) { background: #e8bc59; }
+    .window-dots i:last-child { background: #49c9a3; }
+
+    .preview-status {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #84e9d1;
+    }
+
+    .preview-status .live-dot { width: 5px; height: 5px; }
+
+    .preview-flow {
+      position: relative;
+      z-index: 1;
+      padding: 13px 15px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+      border-bottom: 1px solid rgba(139, 168, 199, .1);
+      color: #4f627b;
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .03em;
+    }
+
+    .flow-chip {
+      padding: 4px 6px;
+      border: 1px solid rgba(139, 168, 199, .14);
+      border-radius: 3px;
+      color: #8192a8;
+      background: rgba(255, 255, 255, .025);
+      white-space: nowrap;
+    }
+
+    .flow-chip.is-key {
+      border-color: rgba(85, 230, 196, .34);
+      color: #7cebd2;
+      background: rgba(85, 230, 196, .07);
+    }
+
+    .flow-arrow {
+      color: #3e526b;
+      font-size: 9px;
+    }
+
+    .preview-field {
+      position: relative;
+      z-index: 1;
+      margin: 13px;
+      overflow: hidden;
+      border: 1px solid rgba(129, 161, 194, .18);
+      border-radius: 11px;
+      background: #07151c;
+    }
+
+    #trajectoryCanvas {
+      width: 100%;
+      aspect-ratio: 960 / 600;
+      background: #07151c;
+    }
+
+    .field-chip {
+      position: absolute;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 6px;
+      border: 1px solid rgba(129, 161, 194, .18);
+      border-radius: 3px;
+      background: rgba(5, 15, 22, .72);
+      color: #8193a7;
+      font-family: var(--mono);
+      font-size: 7.5px;
+      letter-spacing: .03em;
+      backdrop-filter: blur(5px);
+    }
+
+    .field-chip.top-left { top: 9px; left: 9px; }
+    .field-chip.top-right { top: 9px; right: 9px; }
+    .field-chip.top-right span { color: var(--mint); }
+
+    .field-legend {
+      position: absolute;
+      z-index: 2;
+      left: 9px;
+      bottom: 9px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      padding: 5px 7px;
+      border-radius: 3px;
+      background: rgba(5, 15, 22, .66);
+      color: #7d8fa4;
+      font-size: 7.5px;
+      backdrop-filter: blur(5px);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .legend-line {
+      width: 12px;
+      height: 2px;
+      border-radius: 99px;
+      background: var(--mint);
+    }
+
+    .legend-wheel {
+      width: 6px;
+      height: 6px;
+      border: 1px solid var(--coral);
+      border-radius: 50%;
+    }
+
+    .preview-foot {
+      position: relative;
+      z-index: 1;
+      padding: 0 16px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: #72849b;
+      font-size: 9px;
+    }
+
+    .preview-sequence {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .preview-sequence code {
+      padding: 2px 5px;
+      border: 1px solid rgba(85, 230, 196, .2);
+      border-radius: 3px;
+      background: rgba(85, 230, 196, .06);
+      color: #85e9d2;
+      font-family: var(--mono);
+      font-size: 8px;
+    }
+
+    .preview-rule {
+      color: #65778f;
+      font-family: var(--mono);
+      font-size: 8px;
+      white-space: nowrap;
+    }
+
+    .hero-stats-wrap {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid rgba(152, 181, 211, .13);
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      padding-bottom: 27px;
+    }
+
+    .hero-stat {
+      min-width: 0;
+      padding: 20px 22px 0 0;
+      border-right: 1px solid rgba(152, 181, 211, .1);
+    }
+
+    .hero-stat:not(:first-child) { padding-left: 24px; }
+    .hero-stat:last-child { border-right: 0; }
+
+    .hero-stat span {
+      display: block;
+      color: #71839b;
+      font-family: var(--mono);
+      font-size: 8.5px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .hero-stat strong {
+      display: block;
+      margin-top: 4px;
+      color: #f1f7ff;
+      font-family: var(--mono);
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: -.02em;
+      line-height: 1.35;
+    }
+
+    .hero-stat strong em {
+      color: #71839b;
+      font-size: 11px;
+      font-style: normal;
+      font-weight: 400;
+    }
+
+    /* =========================================================
+       5. Overview
+       ========================================================= */
+    #overview { background: var(--page); }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, .9fr);
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .statement-card {
+      position: relative;
+      overflow: hidden;
+      padding: 34px 34px 30px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .statement-card::after {
+      content: "BCI";
+      position: absolute;
+      right: 18px;
+      bottom: -24px;
+      color: rgba(18, 43, 79, .032);
+      font-family: var(--mono);
+      font-size: 110px;
+      font-weight: 700;
+      letter-spacing: -.08em;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .statement-text {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      color: #14213a;
+      font-size: clamp(21px, 2.2vw, 30px);
+      font-weight: 600;
+      letter-spacing: -.035em;
+      line-height: 1.55;
+    }
+
+    .statement-text em {
+      position: relative;
+      color: #087e6d;
+      font-style: normal;
+      white-space: nowrap;
+      background: linear-gradient(transparent 63%, rgba(85, 230, 196, .35) 0);
+    }
+
+    .statement-body {
+      position: relative;
+      z-index: 1;
+      max-width: 635px;
+      margin-top: 18px;
+      color: #637089;
+      font-size: 13.5px;
+      line-height: 1.9;
+    }
+
+    .positioning-points {
+      position: relative;
+      z-index: 1;
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .positioning-points span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 9px;
+      border: 1px solid #e2eaf4;
+      border-radius: 5px;
+      color: #66748a;
+      font-size: 10.5px;
+      background: #fbfdff;
+    }
+
+    .positioning-points .icon { width: 12px; height: 12px; color: #0c9d87; }
+
+    .scope-card {
+      position: relative;
+      overflow: hidden;
+      padding: 30px 30px 26px;
+      border: 1px solid rgba(134, 161, 190, .18);
+      border-radius: var(--radius-lg);
+      background:
+        radial-gradient(circle at 95% 0%, rgba(85, 230, 196, .1), transparent 34%),
+        linear-gradient(155deg, #0c1728, #08111e);
+      color: #ecf4ff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .scope-card::after {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      right: -95px;
+      bottom: -100px;
+      border: 1px solid rgba(85, 230, 196, .14);
+      border-radius: 50%;
+      box-shadow: 0 0 0 32px rgba(85, 230, 196, .025);
+    }
+
+    .scope-card .card-kicker { color: #6be4cc; }
+
+    .scope-card h3 {
+      margin-top: 10px;
+      color: #f3f8ff;
+      font-size: 21px;
+      font-weight: 650;
+      letter-spacing: -.025em;
+    }
+
+    .scope-list {
+      position: relative;
+      z-index: 1;
+      margin-top: 21px;
+      display: grid;
+      gap: 11px;
+    }
+
+    .scope-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      color: #a3b1c6;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .scope-list .icon {
+      width: 14px;
+      height: 14px;
+      margin-top: 3px;
+      color: var(--mint);
+    }
+
+    .scope-note {
+      position: relative;
+      z-index: 1;
+      margin-top: 22px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(144, 175, 208, .13);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #71839b;
+      font-size: 10.5px;
+    }
+
+    .scope-note .icon { width: 13px; height: 13px; }
+
+    .chain-card {
+      margin-top: 22px;
+      padding: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr);
+      gap: 15px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .subsystem {
+      padding: 19px;
+      border: 1px solid #e7eef7;
+      border-radius: 13px;
+      background: #fbfdff;
+    }
+
+    .subsystem-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .subsystem-index {
+      display: grid;
+      place-items: center;
+      width: 27px;
+      height: 27px;
+      flex: 0 0 auto;
+      border-radius: 6px;
+      background: #e9faf5;
+      color: #0b8a75;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .subsystem h3 {
+      color: #1b2942;
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+    }
+
+    .subsystem-head .tag { margin-left: auto; }
+
+    .subsystem p {
+      margin-top: 9px;
+      color: #738198;
+      font-size: 11.5px;
+      line-height: 1.75;
+    }
+
+    .flow-nodes {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .flow-node {
+      padding: 5px 7px;
+      border: 1px solid #dfe8f3;
+      border-radius: 4px;
+      background: #fff;
+      color: #45546c;
+      font-family: var(--mono);
+      font-size: 9px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    .flow-nodes .flow-arrow {
+      color: #9eacbe;
+      font-size: 9px;
+    }
+
+    .chain-interface {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      border-left: 1px dashed #d9e4f0;
+      border-right: 1px dashed #d9e4f0;
+      text-align: center;
+    }
+
+    .interface-icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #ccefe7;
+      border-radius: 50%;
+      background: #effcf8;
+      color: #0d8974;
+    }
+
+    .interface-icon .icon { width: 17px; height: 17px; }
+
+    .chain-interface strong {
+      color: #20436b;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+
+    .chain-interface span {
+      color: #93a0b2;
+      font-size: 9px;
+    }
+
+    .subhead-row {
+      margin: 44px 0 19px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .subhead-row h3 {
+      color: #17243b;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: -.035em;
+    }
+
+    .subhead-row p {
+      color: #8b97a9;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: .03em;
+    }
+
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .module-card {
+      position: relative;
+      grid-column: span 2;
+      min-height: 246px;
+      padding: 23px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(26, 47, 81, .035);
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+
+    .module-card:nth-child(4),
+    .module-card:nth-child(5) {
+      grid-column: span 3;
+      min-height: 220px;
+    }
+
+    .module-card:hover {
+      transform: translateY(-4px);
+      border-color: #cbdbea;
+      box-shadow: var(--shadow-md);
+    }
+
+    .module-card::after {
+      content: "";
+      position: absolute;
+      left: 23px;
+      right: 23px;
+      bottom: 0;
+      height: 2px;
+      border-radius: 2px 2px 0 0;
+      background: linear-gradient(90deg, transparent, rgba(85, 230, 196, .75), transparent);
+      opacity: 0;
+      transition: opacity .25s ease;
+    }
+
+    .module-card:hover::after { opacity: 1; }
+
+    .module-num {
+      position: absolute;
+      top: 13px;
+      right: 18px;
+      color: #eef3f9;
+      font-family: var(--mono);
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .module-icon {
+      width: 41px;
+      height: 41px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 16px;
+      border-radius: 10px;
+      background: #eafaf6;
+      color: #0d8b77;
+    }
+
+    .module-icon .icon { width: 20px; height: 20px; }
+
+    .module-card:nth-child(2) .module-icon { background: #edf4ff; color: #3469cf; }
+    .module-card:nth-child(3) .module-icon { background: #f1efff; color: #6d5bd5; }
+    .module-card:nth-child(4) .module-icon { background: #fff7e8; color: #a57621; }
+    .module-card:nth-child(5) .module-icon { background: #fff0ed; color: #b15441; }
+
+    .module-card h3 {
+      color: #1b2940;
+      font-size: 17px;
+      font-weight: 650;
+      letter-spacing: -.025em;
+    }
+
+    .module-card p {
+      margin-top: 7px;
+      color: #748198;
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .module-tags {
+      margin-top: auto;
+      padding-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .state-pills {
+      margin-top: 13px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .state-pill {
+      padding: 3px 6px;
+      border-radius: 3px;
+      background: #f4f8fc;
+      color: #6f7f94;
+      font-family: var(--mono);
+      font-size: 8px;
+      line-height: 1.5;
+    }
+
+    .state-pill.is-live { background: #e7faf5; color: #0d8a75; }
+
+    .mini-table {
+      margin-top: 13px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      overflow: hidden;
+      border: 1px solid #e7eef6;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 8px;
+      line-height: 1.6;
+    }
+
+    .mini-table span {
+      padding: 5px 4px;
+      border-right: 1px solid #edf2f8;
+      color: #66758a;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .mini-table span:nth-child(-n+5) {
+      background: #f6f9fc;
+      color: #96a2b3;
+    }
+
+    .mini-table span:nth-child(5n) { border-right: 0; }
+    .mini-table .ok { color: #0f8c76; }
+
+    .debug-strip {
+      margin-top: 18px;
+      padding: 17px 21px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 13px 22px;
+      border: 1px solid rgba(134, 166, 197, .16);
+      border-radius: 13px;
+      background:
+        radial-gradient(circle at 8% 50%, rgba(85, 230, 196, .09), transparent 20%),
+        #0a1423;
+      color: #e7f1ff;
+    }
+
+    .debug-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #70e7d0;
+      font-family: var(--mono);
+      font-size: 8.5px;
+      letter-spacing: .08em;
+    }
+
+    .debug-sequence {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .debug-sequence code {
+      padding: 3px 7px;
+      border: 1px solid rgba(85, 230, 196, .27);
+      border-radius: 4px;
+      background: rgba(85, 230, 196, .065);
+      color: #8cefd9;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    .debug-sequence .flow-arrow { color: #476077; }
+
+    .debug-note {
+      margin-left: auto;
+      color: #7f91a9;
+      font-size: 10.5px;
+    }
+
+    /* =========================================================
+       6. Theory
+       ========================================================= */
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 17px;
+    }
+
+    .theory-card {
+      position: relative;
+      overflow: hidden;
+      padding: 27px;
+      border: 1px solid rgba(142, 169, 198, .15);
+      border-radius: 17px;
+      background: linear-gradient(155deg, rgba(255, 255, 255, .052), rgba(255, 255, 255, .022));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035);
+      transition: border-color .25s ease, background .25s ease, transform .25s ease;
+    }
+
+    .theory-card:hover {
+      border-color: rgba(113, 205, 188, .31);
+      background: linear-gradient(155deg, rgba(255, 255, 255, .065), rgba(255, 255, 255, .025));
+      transform: translateY(-2px);
+    }
+
+    .span-7 { grid-column: span 7; }
+    .span-5 { grid-column: span 5; }
+    .span-12 { grid-column: span 12; }
+
+    .theory-card .card-kicker {
+      color: #70e4ce;
+      margin-bottom: 11px;
+    }
+
+    .theory-card h3 {
+      color: #f1f7ff;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: -.03em;
+      line-height: 1.4;
+    }
+
+    .theory-card > p {
+      margin-top: 9px;
+      color: #91a1b8;
+      font-size: 12.5px;
+      line-height: 1.85;
+    }
+
+    .signal-chart {
+      width: 100%;
+      height: auto;
+      margin-top: 18px;
+      border: 1px solid rgba(141, 171, 204, .13);
+      border-radius: 9px;
+      background: #07121e;
+    }
+
+    .signal-wave {
+      stroke-dasharray: 1200;
+      stroke-dashoffset: 1200;
+      animation: draw-wave 2.6s cubic-bezier(.2, .7, .2, 1) .15s forwards;
+    }
+
+    @keyframes draw-wave {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .band-grid {
+      margin-top: 13px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .band-item {
+      padding: 10px 11px;
+      border: 1px solid rgba(141, 171, 204, .12);
+      border-radius: 7px;
+      background: rgba(7, 18, 30, .46);
+    }
+
+    .band-item small {
+      display: block;
+      color: #70829a;
+      font-family: var(--mono);
+      font-size: 7.5px;
+      letter-spacing: .08em;
+    }
+
+    .band-item strong {
+      display: block;
+      margin-top: 2px;
+      color: #c8d6e8;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .band-item em {
+      float: right;
+      margin-top: -19px;
+      color: #7aead2;
+      font-size: 9px;
+      font-style: normal;
+    }
+
+    .signal-notes {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .signal-note {
+      padding: 4px 7px;
+      border: 1px solid rgba(141, 171, 204, .14);
+      border-radius: 4px;
+      color: #9eb0c6;
+      font-size: 9.5px;
+    }
+
+    .signal-note b { color: #7cebd5; font-weight: 500; }
+
+    .limit-card {
+      background:
+        radial-gradient(circle at 100% 0%, rgba(141, 125, 255, .18), transparent 42%),
+        linear-gradient(155deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+    }
+
+    .limit-value {
+      margin-top: 21px;
+      color: #f5f9ff;
+      font-family: var(--mono);
+      font-size: clamp(45px, 5vw, 66px);
+      font-weight: 600;
+      letter-spacing: -.08em;
+      line-height: 1;
+    }
+
+    .limit-value em {
+      color: #9c92ff;
+      font-size: .34em;
+      font-style: normal;
+      letter-spacing: .02em;
+    }
+
+    .limit-sub {
+      margin-top: 8px !important;
+      color: #a1aec2 !important;
+    }
+
+    .accuracy-grid {
+      margin-top: 21px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .accuracy-item {
+      padding: 11px 12px;
+      border: 1px solid rgba(141, 171, 204, .13);
+      border-radius: 7px;
+      background: rgba(8, 18, 32, .44);
+    }
+
+    .accuracy-item strong {
+      display: block;
+      color: #ecf5ff;
+      font-family: var(--mono);
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1.25;
+    }
+
+    .accuracy-item span {
+      display: block;
+      margin-top: 2px;
+      color: #788ba3;
+      font-size: 9.5px;
+    }
+
+    .theory-quote {
+      margin-top: 20px;
+      padding: 2px 0 2px 13px;
+      border-left: 2px solid rgba(255, 127, 102, .7);
+      color: #bdcbe0;
+      font-size: 11.5px;
+      line-height: 1.9;
+    }
+
+    .decode-flow {
+      margin-top: 20px;
+      display: flex;
+      align-items: stretch;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .decode-node {
+      min-width: 94px;
+      padding: 11px;
+      border: 1px solid rgba(141, 171, 204, .14);
+      border-radius: 7px;
+      background: rgba(8, 18, 32, .44);
+    }
+
+    .decode-node small {
+      display: block;
+      color: #6f8199;
+      font-family: var(--mono);
+      font-size: 7px;
+      letter-spacing: .06em;
+    }
+
+    .decode-node b {
+      display: block;
+      margin-top: 4px;
+      color: #dce8f7;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .decode-node.is-output {
+      border-color: rgba(85, 230, 196, .31);
+      background: rgba(85, 230, 196, .065);
+    }
+
+    .decode-node.is-output b { color: #7cebd4; }
+
+    .decode-sep {
+      align-self: center;
+      color: #4b5f77;
+      font-size: 11px;
+    }
+
+    .metric-chips {
+      margin-top: 17px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .metric-chip {
+      padding: 4px 7px;
+      border: 1px solid rgba(141, 171, 204, .13);
+      border-radius: 4px;
+      color: #92a4ba;
+      font-size: 9.5px;
+    }
+
+    .kinematics-layout {
+      margin-top: 15px;
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr);
+      gap: 13px;
+      align-items: center;
+    }
+
+    .angle-figure {
+      width: 132px;
+      height: 132px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(141, 171, 204, .13);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(85, 230, 196, .055), transparent 68%);
+    }
+
+    .angle-figure svg { width: 118px; height: 118px; }
+
+    .kinematics-stats {
+      display: grid;
+      gap: 7px;
+    }
+
+    .kinematics-stat {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid rgba(141, 171, 204, .12);
+    }
+
+    .kinematics-stat:last-child { border-bottom: 0; padding-bottom: 0; }
+
+    .kinematics-stat b {
+      color: #e5effb;
+      font-family: var(--mono);
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    .kinematics-stat span {
+      color: #8092a9;
+      font-size: 9.5px;
+      text-align: right;
+    }
+
+    .metric-strip {
+      display: flex;
+      align-items: stretch;
+      flex-wrap: wrap;
+      gap: 0;
+      padding: 0;
+    }
+
+    .metric-strip-item {
+      flex: 1 1 140px;
+      padding: 7px 18px;
+      border-right: 1px solid rgba(141, 171, 204, .13);
+    }
+
+    .metric-strip-item:first-child { padding-left: 0; }
+    .metric-strip-item:last-child { border-right: 0; }
+
+    .metric-strip-item span {
+      display: block;
+      color: #71839b;
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .05em;
+    }
+
+    .metric-strip-item strong {
+      display: block;
+      margin-top: 3px;
+      color: #dbe8f7;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .theory-footnote {
+      margin-top: 17px;
+      color: #70839a;
+      font-size: 10.5px;
+      line-height: 1.7;
+    }
+
+    /* =========================================================
+       7. Workflow
+       ========================================================= */
+    #workflow { background: #f3f7fc; }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      gap: 46px;
+      align-items: start;
+    }
+
+    .workflow-aside {
+      position: sticky;
+      top: 102px;
+    }
+
+    .workflow-sticky {
+      position: relative;
+      overflow: hidden;
+      padding: 27px;
+      border: 1px solid rgba(132, 162, 194, .18);
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(85, 230, 196, .11), transparent 37%),
+        #0a1423;
+      color: #dce8f7;
+      box-shadow: var(--shadow-md);
+    }
+
+    .workflow-sticky::after {
+      content: "";
+      position: absolute;
+      right: -54px;
+      bottom: -64px;
+      width: 150px;
+      height: 150px;
+      border: 1px solid rgba(85, 230, 196, .15);
+      border-radius: 50%;
+      box-shadow: 0 0 0 27px rgba(85, 230, 196, .025);
+    }
+
+    .big-step {
+      color: #f5faff;
+      font-family: var(--mono);
+      font-size: 72px;
+      font-weight: 600;
+      letter-spacing: -.08em;
+      line-height: .95;
+    }
+
+    .big-step em {
+      color: var(--mint);
+      font-size: .25em;
+      font-style: normal;
+      letter-spacing: .04em;
+      vertical-align: top;
+    }
+
+    .workflow-sticky h3 {
+      margin-top: 17px;
+      color: #f0f7ff;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+    }
+
+    .workflow-sticky p {
+      margin-top: 8px;
+      color: #8da0b7;
+      font-size: 11.5px;
+      line-height: 1.8;
+    }
+
+    .workflow-tip {
+      position: relative;
+      z-index: 1;
+      margin-top: 22px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(141, 171, 204, .14);
+      color: #72859c;
+      font-size: 10px;
+      line-height: 1.7;
+    }
+
+    .workflow-tip b { color: #91e9d7; font-weight: 500; }
+
+    .workflow-sticky .btn { position: relative; z-index: 1; margin-top: 20px; width: 100%; }
+
+    .steps { display: grid; gap: 11px; }
+
+    .step-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 43px minmax(0, 1fr);
+      gap: 15px;
+      padding: 21px 22px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 7px 24px rgba(28, 50, 83, .035);
+      transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+    }
+
+    .step-card:hover {
+      border-color: #cbddeb;
+      box-shadow: 0 15px 34px rgba(28, 50, 83, .08);
+      transform: translateX(2px);
+    }
+
+    .step-card.is-highlight {
+      border-color: #f0d8ce;
+      background: linear-gradient(90deg, #fffaf7, #fff);
+    }
+
+    .step-index {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #d5f1ea;
+      border-radius: 9px;
+      background: #eefcf8;
+      color: #087f6e;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .step-head {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .step-head h3 {
+      color: #1c2a41;
+      font-size: 16px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+      line-height: 1.5;
+    }
+
+    .step-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-left: auto;
+    }
+
+    .step-body p {
+      margin-top: 5px;
+      color: #6d7a90;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .step-body p + p { margin-top: 4px; }
+
+    .step-body a {
+      color: #0d8e79;
+      border-bottom: 1px solid rgba(13, 142, 121, .25);
+    }
+    .step-body a:hover { border-bottom-color: currentColor; }
+
+    .step-body code {
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #f0f6f8;
+      color: #2f6470;
+      font-family: var(--mono);
+      font-size: .92em;
+    }
+
+    .step-checklist {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 9px;
+    }
+
+    .step-checklist span {
+      padding: 3px 6px;
+      border: 1px solid #e6edf5;
+      border-radius: 3px;
+      color: #7c8a9d;
+      font-size: 9px;
+      background: #fafcff;
+    }
+
+    /* =========================================================
+       8. Parameters
+       ========================================================= */
+    #parameters { background: #f8fbfe; }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.38fr) minmax(300px, .62fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .table-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .table-card-head {
+      padding: 17px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid #edf2f8;
+    }
+
+    .table-card-head strong {
+      color: #20304a;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .table-card-head span {
+      color: #9aa6b6;
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .06em;
+    }
+
+    .table-scroll { overflow-x: auto; }
+
+    .param-table {
+      width: 100%;
+      min-width: 610px;
+      border-collapse: collapse;
+    }
+
+    .param-table th {
+      padding: 12px 20px;
+      background: #f5f9fd;
+      color: #929eaf;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .param-table td {
+      padding: 13px 20px;
+      border-top: 1px solid #edf2f8;
+      color: #68758b;
+      font-size: 11.5px;
+      line-height: 1.65;
+      vertical-align: top;
+    }
+
+    .param-table tr:hover td { background: #fbfdff; }
+
+    .param-table td:first-child {
+      color: #35445c;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .param-table td:nth-child(2) {
+      color: #0d6f61;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .param-table code {
+      padding: 2px 4px;
+      border-radius: 3px;
+      background: #f2f7f8;
+      font-family: var(--mono);
+      font-size: .94em;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 15px;
+    }
+
+    .safety-card {
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+      border: 1px solid rgba(157, 178, 207, .17);
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 92% 8%, rgba(255, 127, 102, .16), transparent 39%),
+        linear-gradient(155deg, #101d30, #091321);
+      color: #e8f2ff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .safety-card::after {
+      content: "";
+      position: absolute;
+      right: -38px;
+      bottom: -48px;
+      width: 132px;
+      height: 132px;
+      border: 1px solid rgba(255, 127, 102, .16);
+      border-radius: 50%;
+    }
+
+    .safety-card .card-kicker { color: #ff9d8a; }
+
+    .safety-value {
+      margin-top: 14px;
+      color: #f8fbff;
+      font-family: var(--mono);
+      font-size: 50px;
+      font-weight: 600;
+      letter-spacing: -.06em;
+      line-height: 1;
+    }
+
+    .safety-value em {
+      color: #ff9b87;
+      font-size: .28em;
+      font-style: normal;
+      letter-spacing: .04em;
+    }
+
+    .safety-card p {
+      margin-top: 9px;
+      color: #8fa1b7;
+      font-size: 11px;
+      line-height: 1.8;
+    }
+
+    .info-card {
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .info-card .card-kicker { color: #4d89a1; }
+
+    .info-card h3 {
+      margin-top: 8px;
+      color: #213149;
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+    }
+
+    .info-rule-list {
+      margin-top: 13px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .info-rule {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      color: #718096;
+      font-size: 10.5px;
+      line-height: 1.65;
+    }
+
+    .info-rule .icon {
+      width: 12px;
+      height: 12px;
+      margin-top: 2px;
+      color: #15917d;
+    }
+
+    .code-card {
+      margin-top: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(137, 166, 198, .16);
+      border-radius: 16px;
+      background: #0a1422;
+      box-shadow: 0 16px 36px rgba(9, 21, 38, .12);
+    }
+
+    .code-head {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(137, 166, 198, .12);
+      color: #7a8ea6;
+      font-family: var(--mono);
+      font-size: 8.5px;
+      letter-spacing: .05em;
+    }
+
+    .code-head .window-dots i { width: 5px; height: 5px; }
+
+    .code-head strong {
+      margin-left: 4px;
+      color: #c5d4e6;
+      font-weight: 500;
+    }
+
+    .code-head span:last-child { margin-left: auto; color: #5d7088; }
+
+    .code-block {
+      margin: 0;
+      padding: 20px 22px 22px;
+      overflow-x: auto;
+      color: #a9bdd3;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.9;
+      tab-size: 2;
+    }
+
+    .code-block .tok-key { color: #8d7dff; }
+    .code-block .tok-fn { color: #70e7d0; }
+    .code-block .tok-num { color: #ffc86b; }
+    .code-block .tok-com { color: #586b82; }
+
+    /* =========================================================
+       9. Analysis
+       ========================================================= */
+    #observations { background: #fff; }
+
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .analysis-card {
+      position: relative;
+      min-height: 196px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: linear-gradient(155deg, #ffffff, #fbfdff);
+      transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+    }
+
+    .analysis-card:hover {
+      transform: translateY(-3px);
+      border-color: #cfdfed;
+      box-shadow: 0 17px 36px rgba(26, 50, 87, .07);
+    }
+
+    .analysis-card::before {
+      content: "";
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: -1px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--mint), transparent);
+      border-radius: 2px;
+    }
+
+    .analysis-card:nth-child(2)::before { background: linear-gradient(90deg, var(--violet), transparent); }
+    .analysis-card:nth-child(3)::before { background: linear-gradient(90deg, var(--coral), transparent); }
+    .analysis-card:nth-child(4)::before { background: linear-gradient(90deg, var(--amber), transparent); }
+    .analysis-card:nth-child(5)::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+    .analysis-card:nth-child(6)::before { background: linear-gradient(90deg, #9fd7b2, transparent); }
+
+    .analysis-icon {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 15px;
+      border: 1px solid #dceeea;
+      border-radius: 8px;
+      background: #f2fbf8;
+      color: #0f8c78;
+    }
+
+    .analysis-icon .icon { width: 16px; height: 16px; }
+
+    .analysis-card:nth-child(2) .analysis-icon { border-color: #e7e1ff; background: #f7f4ff; color: #6d5bd5; }
+    .analysis-card:nth-child(3) .analysis-icon { border-color: #f7ddd6; background: #fff6f3; color: #b35743; }
+    .analysis-card:nth-child(4) .analysis-icon { border-color: #f4e4c8; background: #fffaef; color: #a47723; }
+    .analysis-card:nth-child(5) .analysis-icon { border-color: #d8eaf8; background: #f3faff; color: #347aa8; }
+    .analysis-card:nth-child(6) .analysis-icon { border-color: #dcefe0; background: #f5fcf6; color: #4b8e63; }
+
+    .analysis-card h3 {
+      color: #213047;
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -.02em;
+    }
+
+    .analysis-card p {
+      margin-top: 6px;
+      color: #758297;
+      font-size: 11.5px;
+      line-height: 1.8;
+    }
+
+    /* =========================================================
+       10. FAQ
+       ========================================================= */
+    #faq { background: var(--page); }
+
+    .faq-grid {
+      display: grid;
+      grid-template-columns: 330px minmax(0, 1fr);
+      gap: 48px;
+      align-items: start;
+    }
+
+    .faq-side {
+      position: sticky;
+      top: 102px;
+    }
+
+    .faq-side h2 {
+      color: var(--ink);
+      font-size: clamp(30px, 3.2vw, 42px);
+      font-weight: 700;
+      letter-spacing: -.045em;
+      line-height: 1.25;
+    }
+
+    .faq-side p {
+      margin-top: 12px;
+      color: #758297;
+      font-size: 12.5px;
+      line-height: 1.9;
+    }
+
+    .faq-side-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 20px;
+      color: #0c8c77;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .faq-side-link .icon { width: 14px; height: 14px; }
+    .faq-side-link:hover { color: #066858; }
+
+    .faq-list {
+      border-top: 1px solid #dbe4ef;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid #dbe4ef;
+    }
+
+    .faq-item summary {
+      position: relative;
+      padding: 20px 38px 20px 0;
+      display: block;
+      color: #26364e;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.6;
+      cursor: pointer;
+      list-style: none;
+      transition: color .2s ease;
+    }
+
+    .faq-item summary::-webkit-details-marker { display: none; }
+
+    .faq-item summary:hover { color: #0d8b76; }
+
+    .faq-item summary::after {
+      content: "+";
+      position: absolute;
+      right: 2px;
+      top: 18px;
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #d7e3ee;
+      border-radius: 50%;
+      color: #75869c;
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1;
+      transition: transform .2s ease, border-color .2s ease, color .2s ease;
+    }
+
+    .faq-item[open] summary { color: #0d8b76; }
+
+    .faq-item[open] summary::after {
+      transform: rotate(45deg);
+      border-color: #bce9df;
+      color: #0d8b76;
+    }
+
+    .faq-answer {
+      max-width: 760px;
+      padding: 0 38px 21px 0;
+      color: #6d7b91;
+      font-size: 12px;
+      line-height: 1.9;
+    }
+
+    .faq-answer strong { color: #25415a; font-weight: 600; }
+    .faq-answer code {
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #eaf4f3;
+      color: #256b60;
+      font-family: var(--mono);
+      font-size: .92em;
+    }
+
+    .faq-answer .note {
+      margin-top: 8px;
+      padding: 9px 11px;
+      border-left: 2px solid #9fe1d4;
+      background: #f4fbfa;
+      color: #55766f;
+      font-size: 11px;
+    }
+
+    /* =========================================================
+       11. CTA & footer
+       ========================================================= */
+    .cta-section {
+      padding: 0 0 90px;
+      background: var(--page);
+    }
+
+    .cta-card {
+      position: relative;
+      overflow: hidden;
+      padding: 46px 50px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 34px;
+      align-items: center;
+      border: 1px solid rgba(135, 167, 199, .18);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 84% 14%, rgba(85, 230, 196, .15), transparent 27%),
+        radial-gradient(circle at 18% 100%, rgba(84, 93, 211, .16), transparent 35%),
+        #08121f;
+      color: #eff7ff;
+      box-shadow: 0 30px 70px rgba(8, 19, 34, .18);
+    }
+
+    .cta-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .45;
+      background-image:
+        linear-gradient(rgba(145, 175, 205, .12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(145, 175, 205, .12) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(90deg, transparent, #000 72%);
+      pointer-events: none;
+    }
+
+    .cta-card::after {
+      content: "";
+      position: absolute;
+      right: -75px;
+      top: -115px;
+      width: 300px;
+      height: 300px;
+      border: 1px solid rgba(85, 230, 196, .15);
+      border-radius: 50%;
+      box-shadow: 0 0 0 44px rgba(85, 230, 196, .02);
+      pointer-events: none;
+    }
+
+    .cta-copy, .cta-action {
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-copy .eyebrow { margin-bottom: 14px; }
+
+    .cta-copy h2 {
+      color: #f4f9ff;
+      font-size: clamp(29px, 3.2vw, 42px);
+      font-weight: 650;
+      letter-spacing: -.045em;
+      line-height: 1.28;
+    }
+
+    .cta-copy p {
+      max-width: 610px;
+      margin-top: 11px;
+      color: #92a4ba;
+      font-size: 12.5px;
+      line-height: 1.85;
+    }
+
+    .cta-action {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .cta-url {
+      color: #637890;
+      font-family: var(--mono);
+      font-size: 8.5px;
+      white-space: nowrap;
+    }
+
+    .site-footer {
+      background: #060c16;
+      color: #7e8fa5;
+      font-size: 11.5px;
+    }
+
+    .footer-main {
+      padding: 42px 0 31px;
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 40px;
+      border-bottom: 1px solid rgba(139, 168, 198, .11);
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+    }
+
+    .footer-brand .brand-mark { width: 32px; height: 32px; }
+    .footer-brand .brand-mark .icon { width: 17px; height: 17px; }
+
+    .footer-brand h3 {
+      color: #eaf2fc;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .footer-brand p {
+      max-width: 390px;
+      margin-top: 6px;
+      color: #6f8097;
+      font-size: 10.5px;
+      line-height: 1.8;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px 25px;
+    }
+
+    .footer-links a {
+      color: #8c9bb0;
+      font-size: 11px;
+      transition: color .2s ease;
+    }
+
+    .footer-links a:hover { color: var(--mint); }
+
+    .footer-social {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #88e9d5 !important;
+    }
+
+    .footer-social .icon { width: 12px; height: 12px; }
+
+    .footer-bottom {
+      padding: 16px 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      color: #52647a;
+      font-family: var(--mono);
+      font-size: 8.5px;
+      letter-spacing: .02em;
+    }
+
+    .footer-bottom span:last-child { text-align: right; }
+
+    /* =========================================================
+       12. Responsive
+       ========================================================= */
+    @media (max-width: 1120px) {
+      .hero-inner { grid-template-columns: minmax(0, 1fr) 440px; gap: 38px; }
+      .hero h1 { font-size: clamp(39px, 4.3vw, 57px); }
+      .main-nav { gap: 20px; }
+      .section-head { grid-template-columns: minmax(0, 1fr) 360px; }
+      .workflow-grid { grid-template-columns: 255px minmax(0, 1fr); gap: 30px; }
+      .faq-grid { grid-template-columns: 290px minmax(0, 1fr); gap: 34px; }
+      .cta-card { padding: 40px; }
+    }
+
+    @media (max-width: 980px) {
+      .container { width: min(calc(100% - 38px), var(--max)); }
+
+      .header-inner { height: 68px; }
+      .nav-toggle { display: grid; }
+      .main-nav {
+        position: absolute;
+        top: 68px;
+        left: 19px;
+        right: 19px;
+        margin: 0;
+        padding: 10px;
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
+        border: 1px solid rgba(146, 174, 203, .17);
+        border-radius: 0 0 12px 12px;
+        background: rgba(8, 16, 29, .98);
+        box-shadow: 0 20px 35px rgba(0, 0, 0, .28);
+      }
+      .main-nav.is-open { display: flex; }
+      .main-nav a {
+        padding: 11px 13px;
+        border-radius: 6px;
+        color: #adbbcd;
+        font-size: 13px;
+      }
+      .main-nav a:hover { background: rgba(85, 230, 196, .07); }
+      .main-nav a::after { display: none; }
+      .main-nav a.is-active { background: rgba(85, 230, 196, .07); color: var(--mint); }
+      .header-actions { margin-left: auto; }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 34px;
+        padding-top: 58px;
+      }
+      .hero-copy { max-width: 760px; }
+      .hero h1 { max-width: 740px; }
+      .hero-visual { max-width: 620px; justify-self: start; }
+      .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hero-stat:nth-child(2) { border-right: 0; }
+      .hero-stat:nth-child(3),
+      .hero-stat:nth-child(4) { padding-top: 16px; border-top: 1px solid rgba(152, 181, 211, .1); }
+      .hero-stat:nth-child(3) { padding-left: 0; }
+
+      .section { padding: 76px 0; }
+      .section-head { grid-template-columns: 1fr; gap: 18px; margin-bottom: 34px; }
+      .section-sub { max-width: 630px; }
+
+      .overview-grid { grid-template-columns: 1fr; }
+      .statement-text { max-width: 720px; }
+      .scope-card { min-height: 0; }
+
+      .chain-card { grid-template-columns: 1fr; }
+      .chain-interface {
+        padding: 12px 0;
+        flex-direction: row;
+        border-left: 0;
+        border-right: 0;
+        border-top: 1px dashed #d9e4f0;
+        border-bottom: 1px dashed #d9e4f0;
+      }
+      .chain-interface strong { font-size: 10px; }
+
+      .modules-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .module-card,
+      .module-card:nth-child(4),
+      .module-card:nth-child(5) {
+        grid-column: auto;
+        min-height: 228px;
+      }
+      .module-card:last-child { grid-column: span 2; }
+
+      .theory-grid { grid-template-columns: 1fr 1fr; }
+      .span-7, .span-5, .span-12 { grid-column: auto; }
+      .theory-card.span-7,
+      .theory-card.span-5,
+      .theory-card.span-12 { grid-column: span 2; }
+
+      .workflow-grid { grid-template-columns: 1fr; gap: 22px; }
+      .workflow-aside { position: static; }
+      .workflow-sticky {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 20px;
+        padding: 21px 23px;
+      }
+      .big-step { font-size: 49px; }
+      .workflow-sticky h3 { margin-top: 0; }
+      .workflow-sticky p { flex: 1 1 280px; margin-top: 0; }
+      .workflow-tip { display: none; }
+      .workflow-sticky .btn { width: auto; margin: 0 0 0 auto; }
+
+      .param-grid { grid-template-columns: 1fr; }
+      .side-stack { grid-template-columns: 1fr 1fr; }
+      .side-stack > * { height: 100%; }
+
+      .analysis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .faq-grid { grid-template-columns: 1fr; gap: 26px; }
+      .faq-side { position: static; }
+      .faq-side p { max-width: 580px; }
+
+      .cta-card { grid-template-columns: 1fr; gap: 25px; }
+      .cta-action { align-items: flex-start; }
+      .cta-card { padding: 34px; }
+    }
+
+    @media (max-width: 680px) {
+      .container { width: min(calc(100% - 28px), var(--max)); }
+      .header-inner { height: 64px; gap: 13px; }
+      .brand-copy strong { font-size: 13px; }
+      .brand-copy span { font-size: 7px; }
+      .brand-mark { width: 34px; height: 34px; }
+      .header-actions { gap: 7px; }
+      .platform-btn { min-height: 35px; padding: 0 10px; font-size: 10.5px; }
+      .platform-btn .icon { width: 12px; height: 12px; }
+      .nav-toggle { width: 36px; height: 36px; }
+      .main-nav { top: 64px; left: 14px; right: 14px; }
+
+      .hero-inner { padding-top: 43px; padding-bottom: 34px; gap: 27px; }
+      .hero h1 { margin-top: 17px; font-size: clamp(33px, 8.4vw, 47px); line-height: 1.17; }
+      .hero-lead { margin-top: 17px; font-size: 13px; line-height: 1.85; }
+      .hero-tags { gap: 5px; margin-top: 16px; }
+      .hero-tag { font-size: 8px; padding: 4px 6px; }
+      .hero-actions { gap: 8px; margin-top: 21px; }
+      .btn-lg { min-height: 45px; padding: 0 15px; font-size: 12.5px; }
+      .hero-note { font-size: 10px; }
+      .hero-visual { max-width: none; }
+      .preview-flow { gap: 4px; padding: 11px 11px; font-size: 7px; }
+      .flow-chip { padding: 3px 4px; }
+      .preview-field { margin: 10px; }
+      .preview-foot { padding: 0 11px 12px; flex-direction: column; align-items: flex-start; gap: 5px; }
+      .field-legend { gap: 6px; font-size: 6.5px; }
+      .hero-stats-wrap { margin-top: 5px; }
+      .hero-stats { padding-bottom: 16px; }
+      .hero-stat { padding-top: 15px; padding-right: 10px; }
+      .hero-stat:not(:first-child) { padding-left: 14px; }
+      .hero-stat:nth-child(3) { padding-left: 0; }
+      .hero-stat span { font-size: 7.5px; }
+      .hero-stat strong { font-size: 17px; }
+      .hero-stat strong em { font-size: 8px; }
+
+      .section { padding: 60px 0; }
+      .section-title { font-size: clamp(29px, 7vw, 36px); }
+      .section-sub { font-size: 12.5px; line-height: 1.8; }
+
+      .statement-card { padding: 24px 21px 22px; }
+      .statement-text { font-size: 21px; }
+      .statement-body { font-size: 12px; line-height: 1.85; }
+      .positioning-points { gap: 5px; margin-top: 18px; }
+      .positioning-points span { font-size: 9px; padding: 5px 7px; }
+      .scope-card { padding: 23px 21px; }
+      .scope-card h3 { font-size: 18px; }
+      .scope-list li { font-size: 11px; }
+      .scope-note { font-size: 9.5px; }
+
+      .chain-card { padding: 13px; gap: 11px; }
+      .subsystem { padding: 15px; }
+      .subsystem h3 { font-size: 14px; }
+      .subsystem p { font-size: 10.5px; }
+      .flow-node { font-size: 8px; padding: 4px 5px; }
+      .flow-nodes { gap: 4px; }
+      .chain-interface { padding: 9px 0; }
+      .chain-interface strong { font-size: 8.5px; }
+      .interface-icon { width: 29px; height: 29px; }
+      .interface-icon .icon { width: 14px; height: 14px; }
+
+      .subhead-row { margin-top: 33px; display: block; }
+      .subhead-row h3 { font-size: 18px; }
+      .subhead-row p { margin-top: 5px; font-size: 8px; }
+      .modules-grid { grid-template-columns: 1fr; gap: 11px; }
+      .module-card,
+      .module-card:nth-child(4),
+      .module-card:nth-child(5),
+      .module-card:last-child { grid-column: auto; min-height: 0; padding: 19px; }
+      .module-card h3 { font-size: 16px; }
+      .module-card p { font-size: 11px; }
+      .module-tags { padding-top: 13px; }
+      .debug-strip { padding: 15px 16px; gap: 10px; }
+      .debug-sequence { gap: 4px; }
+      .debug-sequence code { font-size: 9px; }
+      .debug-note { margin-left: 0; width: 100%; font-size: 9.5px; }
+
+      .theory-grid { grid-template-columns: 1fr; gap: 11px; }
+      .theory-card,
+      .theory-card.span-7,
+      .theory-card.span-5,
+      .theory-card.span-12 { grid-column: auto; padding: 20px; }
+      .theory-card h3 { font-size: 19px; }
+      .theory-card > p { font-size: 11.5px; }
+      .limit-value { font-size: 50px; }
+      .decode-flow { gap: 4px; }
+      .decode-node { min-width: 80px; padding: 9px 8px; }
+      .decode-node b { font-size: 9px; }
+      .decode-node small { font-size: 6.5px; }
+      .decode-sep { font-size: 8px; }
+      .kinematics-layout { grid-template-columns: 110px minmax(0, 1fr); gap: 9px; }
+      .angle-figure { width: 110px; height: 110px; }
+      .angle-figure svg { width: 100px; height: 100px; }
+      .kinematics-stat b { font-size: 14px; }
+      .kinematics-stat span { font-size: 8px; }
+      .metric-strip-item { flex-basis: 50%; padding: 9px 0 9px 13px; }
+      .metric-strip-item:nth-child(odd) { padding-left: 0; }
+      .metric-strip-item:nth-child(2n) { border-right: 0; }
+      .theory-footnote { font-size: 9.5px; }
+
+      .workflow-sticky { display: block; padding: 20px; }
+      .big-step { font-size: 43px; }
+      .workflow-sticky h3 { margin-top: 9px; font-size: 16px; }
+      .workflow-sticky p { font-size: 10.5px; }
+      .workflow-sticky .btn { margin-top: 15px; width: 100%; }
+      .step-card { grid-template-columns: 34px minmax(0, 1fr); gap: 10px; padding: 16px 14px; }
+      .step-index { width: 30px; height: 30px; font-size: 8px; }
+      .step-head h3 { font-size: 14px; }
+      .step-badges { margin-left: 0; }
+      .step-badges .tag { font-size: 8px; min-height: 19px; padding: 1px 5px; }
+      .step-body p { font-size: 10.5px; line-height: 1.75; }
+      .step-checklist span { font-size: 8px; }
+
+      .side-stack { grid-template-columns: 1fr; }
+      .safety-card, .info-card { padding: 20px; }
+      .safety-value { font-size: 42px; }
+      .param-table { min-width: 0; }
+      .param-table thead { display: none; }
+      .param-table tbody,
+      .param-table tr,
+      .param-table td { display: block; }
+      .param-table tr {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 3px 12px;
+        padding: 13px 16px;
+        border-top: 1px solid #edf2f8;
+      }
+      .param-table tr:first-child { border-top: 0; }
+      .param-table td {
+        padding: 0;
+        border: 0;
+        font-size: 10.5px;
+        line-height: 1.65;
+      }
+      .param-table td:first-child {
+        grid-column: 1;
+        grid-row: 1;
+        font-size: 10.5px;
+        white-space: normal;
+      }
+      .param-table td:nth-child(2) {
+        grid-column: 2;
+        grid-row: 1;
+        font-size: 10px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .param-table td:nth-child(3) {
+        grid-column: 2;
+        grid-row: 2;
+        color: #8995a7;
+        font-size: 9.5px;
+      }
+      .code-block { padding: 16px; font-size: 10px; }
+      .code-head { padding: 10px 14px; }
+
+      .analysis-grid { grid-template-columns: 1fr; gap: 10px; }
+      .analysis-card { min-height: 0; padding: 18px; }
+      .analysis-card p { font-size: 10.5px; }
+      .analysis-card h3 { font-size: 14px; }
+
+      .faq-side h2 { font-size: 31px; }
+      .faq-item summary { padding: 16px 32px 16px 0; font-size: 12.5px; }
+      .faq-item summary::after { top: 14px; width: 21px; height: 21px; font-size: 13px; }
+      .faq-answer { padding-right: 5px; font-size: 10.5px; }
+      .faq-answer .note { font-size: 10px; }
+
+      .cta-section { padding-bottom: 55px; }
+      .cta-card { padding: 26px 21px; gap: 21px; border-radius: 16px; }
+      .cta-copy h2 { font-size: 28px; }
+      .cta-copy p { font-size: 11px; }
+      .cta-action .btn { width: 100%; }
+      .cta-url { font-size: 7.5px; white-space: normal; word-break: break-all; }
+
+      .footer-main { grid-template-columns: 1fr; padding: 30px 0 22px; gap: 20px; }
+      .footer-links { justify-content: flex-start; gap: 9px 18px; }
+      .footer-bottom { display: block; padding: 14px 0 17px; font-size: 7.5px; line-height: 1.8; }
+      .footer-bottom span:last-child { display: block; margin-top: 5px; text-align: left; }
+    }
+
+    @media (max-width: 390px) {
+      .brand-copy span { display: none; }
+      .platform-btn { padding: 0 8px; }
+      .hero h1 { font-size: 32px; }
+      .hero-stat strong { font-size: 15px; }
+      .hero-stat span { letter-spacing: .03em; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <!-- 图标库 -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-wave" viewBox="0 0 24 24">
+      <path d="M2.5 12h3.2l1.6-4.7 3.1 10 2.2-7 1.8 4.1h2.1l1.3-2.4 1.2 2.4h2.5"/>
+    </symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24">
+      <path d="M9.5 4.2a3.2 3.2 0 0 0-5.2 2.5c0 .5.1 1 .3 1.4A3.5 3.5 0 0 0 3.3 12a3.4 3.4 0 0 0 1.7 3 3.2 3.2 0 0 0 2.7 4.8c.6 0 1.2-.2 1.8-.5"/>
+      <path d="M14.5 4.2a3.2 3.2 0 0 1 5.2 2.5c0 .5-.1 1-.3 1.4A3.5 3.5 0 0 1 20.7 12a3.4 3.4 0 0 1-1.7 3 3.2 3.2 0 0 1-2.7 4.8c-.6 0-1.2-.2-1.8-.5"/>
+      <path d="M12 4v16M9.5 8.2c1.5.5 2.5 1.4 2.5 2.3M14.5 8.2c-1.5.5-2.5 1.4-2.5 2.3M9.5 15.8c1.5-.5 2.5-1.4 2.5-2.3M14.5 15.8c-1.5-.5-2.5-1.4-2.5-2.3"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m4.5 12.5 5 5 10-11"/>
+    </symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24">
+      <path d="M7 17 17 7M8 7h9v9"/>
+    </symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24">
+      <path d="M12 4v16M6 14l6 6 6-6"/>
+    </symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24">
+      <path d="M4 12h16M14 6l6 6-6 6"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24">
+      <rect x="4.5" y="10" width="15" height="11" rx="2"/>
+      <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 24 24">
+      <path d="M6 3.5h8l4 4v13H6v-17Z"/><path d="M14 3.5v4h4M9 12h6M9 15.5h6"/>
+    </symbol>
+    <symbol id="i-play" viewBox="0 0 24 24">
+      <path d="m8 5.5 10 6.5-10 6.5Z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24">
+      <rect x="7" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/>
+      <rect x="13.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-step" viewBox="0 0 24 24">
+      <path d="M5 5v14M9 5v14M13 5l7 7-7 7"/>
+    </symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24">
+      <path d="M4.5 11a7.5 7.5 0 1 0 2.2-5.3L4 8.5"/><path d="M4 4v4.5h4.5"/>
+    </symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24">
+      <path d="M8 11V5.7a1.7 1.7 0 0 1 3.4 0V11M11.4 10V4.5a1.7 1.7 0 0 1 3.4 0V11M14.8 10.5V5.8a1.7 1.7 0 0 1 3.4 0V13c0 4.4-2.6 7-6.6 7H10a5 5 0 0 1-4.4-2.6L3.3 13a1.8 1.8 0 0 1 3-2l1.7 2.4"/>
+    </symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24">
+      <rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M9 9.5V20M15 9.5V20"/>
+    </symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24">
+      <path d="M3 12h4l2.2-6 4.1 12 2.4-6H21"/>
+    </symbol>
+    <symbol id="i-table" viewBox="0 0 24 24">
+      <rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9.5h18M9 9.5v10M15 9.5v10"/>
+    </symbol>
+    <symbol id="i-wheelchair" viewBox="0 0 24 24">
+      <circle cx="7.5" cy="18" r="2.7"/><path d="M7.5 18h5.2l2.8-7h-5.1L9.5 6h3"/>
+      <path d="M14.4 18h4.1"/><circle cx="16.4" cy="7.5" r="1.7"/>
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-route" viewBox="0 0 24 24">
+      <circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M6 16V9a3 3 0 0 1 3-3h3a3 3 0 0 0 3-3M8 20c2.5 0 3-2 3.5-4s1.5-4 4.5-4h1"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24">
+      <path d="M12 3 4.7 6v5.3c0 4.4 3.1 7.5 7.3 9.4 4.2-1.9 7.3-5 7.3-9.4V6L12 3Z"/><path d="m8.8 12 2.2 2.2 4.4-4.5"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24">
+      <path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5M12 17.2v.3"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M12 3v12M7 10l5 5 5-5M4.5 20h15"/>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>
+    </symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24">
+      <path d="M4 20V4M4 20h16M7 16l3.5-4 3 2.3 4.5-6"/>
+    </symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24">
+      <path d="M12 3v18M5 6h14M6.5 6 3 13h7L6.5 6ZM17.5 6 14 13h7l-3.5-7Z"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24">
+      <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>
+    </symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>
+    </symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24">
+      <rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h1M10 10h1M14 10h1M18 10h1M6 14h1M18 14h1M9.5 14h5"/>
+    </symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h16"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="m6 6 12 12M18 6 6 18"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/>
+    </symbol>
+  </svg>
+
+  <!-- 顶部导航 -->
+  <header class="site-header" id="top">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="脑机接口实验台首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg class="icon"><use href="#i-brain"></use></svg>
+        </span>
+        <span class="brand-copy">
+          <strong>脑机接口实验台</strong>
+          <span>BCI / WHEELCHAIR LAB</span>
+        </span>
+      </a>
+
+      <nav class="main-nav" id="main-nav" aria-label="主导航">
+        <a href="#overview" class="is-active">实验介绍</a>
+        <a href="#theory">理论指导</a>
+        <a href="#workflow">操作步骤</a>
+        <a href="#parameters">参数速查</a>
+        <a href="#faq">常见问题</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="platform-btn" href="https://g3068805045-cmyk.github.io/bci-wheelchair-demo/" target="_blank" rel="noopener noreferrer">
+          实验平台
+          <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+        </a>
+        <button class="nav-toggle" type="button" aria-label="展开导航" aria-controls="main-nav" aria-expanded="false">
+          <svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <span class="hero-ghost" aria-hidden="true">BCI</span>
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow">
+            <span class="pulse-dot" aria-hidden="true"></span>
+            BCI × WHEELCHAIR / 虚拟仿真实验
+          </span>
+
+          <h1 id="hero-title">
+            脑机接口解码与<br>
+            <span class="title-accent">轮椅控制</span>虚拟仿真实验
+          </h1>
+
+          <p class="hero-lead">
+            从一次运动想象，到一次安全移动。以离线预测文件连接解码与控制，把完整的 BCI 应用链路拆分为可独立开发、独立验证、可复现的两个子系统。
+          </p>
+
+          <div class="hero-tags" aria-label="实验特点">
+            <span class="hero-tag">
+              <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+              纯静态页面
+            </span>
+            <span class="hero-tag">
+              <svg class="icon" aria-hidden="true"><use href="#i-file"></use></svg>
+              离线 CSV 接口
+            </span>
+            <span class="hero-tag">
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              数据不出浏览器
+            </span>
+          </div>
+
+          <div class="hero-actions">
+            <a class="btn btn-primary btn-lg" href="https://g3068805045-cmyk.github.io/bci-wheelchair-demo/" target="_blank" rel="noopener noreferrer">
+              实验平台
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+            </a>
+            <a class="btn btn-ghost btn-lg" href="#workflow">
+              查看操作流程
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
+            </a>
+          </div>
+
+          <p class="hero-note">
+            <svg class="icon" aria-hidden="true"><use href="#i-shield"></use></svg>
+            不依赖真实脑电采集设备与实体轮椅 · 可直接托管于 GitHub Pages
+          </p>
+        </div>
+
+        <div class="hero-visual" aria-label="BCI 指令驱动轮椅轨迹的仿真预览">
+          <div class="preview-card">
+            <div class="preview-topbar">
+              <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span>SIMULATION PREVIEW</span>
+              <span class="preview-status"><span class="live-dot" aria-hidden="true"></span>READY</span>
+            </div>
+
+            <div class="preview-flow" aria-hidden="true">
+              <span class="flow-chip">EEG</span>
+              <span class="flow-arrow">→</span>
+              <span class="flow-chip">CSP</span>
+              <span class="flow-arrow">→</span>
+              <span class="flow-chip is-key">CSV</span>
+              <span class="flow-arrow">→</span>
+              <span class="flow-chip">MOTION</span>
+              <span class="flow-arrow">→</span>
+              <span class="flow-chip">WHEELCHAIR</span>
+            </div>
+
+            <div class="preview-field">
+              <canvas id="trajectoryCanvas" width="960" height="600" role="img" aria-label="二维场地预览：轮椅按 left、right、left 调试序列移动">
+                您的浏览器不支持 Canvas，无法显示二维场地预览。
+              </canvas>
+              <span class="field-chip top-left">START (480, 500)</span>
+              <span class="field-chip top-right"><span>3</span> TRIALS</span>
+              <div class="field-legend" aria-hidden="true">
+                <span class="legend-item"><span class="legend-line"></span>已执行轨迹</span>
+                <span class="legend-item"><span class="legend-wheel"></span>轮椅位置</span>
+                <span class="legend-item">960 × 600</span>
+              </div>
+            </div>
+
+            <div class="preview-foot">
+              <span class="preview-sequence">
+                调试序列
+                <code>left</code><span class="flow-arrow">→</span><code>right</code><span class="flow-arrow">→</span><code>left</code>
+              </span>
+              <span class="preview-rule">30° / 36 px</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-stats-wrap">
+        <div class="container hero-stats" aria-label="关键仿真参数">
+          <div class="hero-stat">
+            <span>二维场地</span>
+            <strong>960 × 600 <em>px</em></strong>
+          </div>
+          <div class="hero-stat">
+            <span>单步转向</span>
+            <strong>30° <em>left / right</em></strong>
+          </div>
+          <div class="hero-stat">
+            <span>单步前进</span>
+            <strong>36 <em>px</em></strong>
+          </div>
+          <div class="hero-stat">
+            <span>自动回放间隔</span>
+            <strong>900 <em>ms</em></strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01 实验介绍 -->
+    <section class="section" id="overview">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">01 / OVERVIEW</span>
+            <h2 class="section-title">实验介绍</h2>
+          </div>
+          <p class="section-sub">实验是什么、解决什么问题、系统边界在哪里。先明确“不做什么”，再理解两个子系统如何通过一个 CSV 文件完成握手。</p>
+        </div>
+
+        <div class="overview-grid">
+          <article class="statement-card">
+            <p class="statement-text">
+              用二维虚拟场地，复现从<em>运动想象解码</em>到<em>轮椅运动控制</em>的完整 BCI 应用链路。
+            </p>
+            <p class="statement-body">
+              实验不依赖真实脑电采集设备与实体轮椅，而是以离线预测文件（CSV）作为两个环节的接口。解码端可以独立训练与验证，仿真端可以独立调试与回放，从而把一条完整的 BCI 应用链路拆分为可独立开发、独立验证、可复现的两个子系统。
+            </p>
+            <div class="positioning-points">
+              <span><svg class="icon" aria-hidden="true"><use href="#i-monitor"></use></svg>纯静态 HTML</span>
+              <span><svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>本地读取 CSV</span>
+              <span><svg class="icon" aria-hidden="true"><use href="#i-refresh"></use></svg>可复现回放</span>
+            </div>
+          </article>
+
+          <aside class="scope-card">
+            <span class="card-kicker">SYSTEM BOUNDARY</span>
+            <h3>系统边界</h3>
+            <ul class="scope-list">
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                <span>不使用真实脑电采集设备，不采集受试者生理数据。</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                <span>不连接实体轮椅，运动过程完全在二维 Canvas 场地中完成。</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                <span>CSV 是解码端与仿真端之间唯一的数据接口。</span>
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                <span>导入的文件只会在访问者自己的浏览器中读取，不上传服务器。</span>
+              </li>
+            </ul>
+            <div class="scope-note">
+              <svg class="icon" aria-hidden="true"><use href="#i-lock"></use></svg>
+              页面可双击打开，也可直接托管于 GitHub Pages。
+            </div>
+          </aside>
+        </div>
+
+        <div class="chain-card" aria-label="BCI 应用链路的两个子系统">
+          <div class="subsystem">
+            <div class="subsystem-head">
+              <span class="subsystem-index">01</span>
+              <h3>解码端 · MI-BCI</h3>
+              <span class="tag mint">离线</span>
+            </div>
+            <p>从运动想象脑电特征到二分类指令，输出预测标签与置信度。</p>
+            <div class="flow-nodes" aria-label="解码流程">
+              <span class="flow-node">EEG</span><span class="flow-arrow">→</span>
+              <span class="flow-node">滤波</span><span class="flow-arrow">→</span>
+              <span class="flow-node">CSP</span><span class="flow-arrow">→</span>
+              <span class="flow-node">分类器</span><span class="flow-arrow">→</span>
+              <span class="flow-node">left / right</span>
+            </div>
+          </div>
+
+          <div class="chain-interface">
+            <span class="interface-icon" aria-hidden="true">
+              <svg class="icon"><use href="#i-file"></use></svg>
+            </span>
+            <strong>predictions.csv</strong>
+            <span>唯一接口</span>
+          </div>
+
+          <div class="subsystem">
+            <div class="subsystem-head">
+              <span class="subsystem-index">02</span>
+              <h3>仿真端 · 轮椅控制</h3>
+              <span class="tag amber">二维场地</span>
+            </div>
+            <p>读取离线预测，用统一的运动规则驱动轮椅，并判定轨迹是否越界。</p>
+            <div class="flow-nodes" aria-label="轮椅控制流程">
+              <span class="flow-node">读取 CSV</span><span class="flow-arrow">→</span>
+              <span class="flow-node">转向 30°</span><span class="flow-arrow">→</span>
+              <span class="flow-node">前进 36 px</span><span class="flow-arrow">→</span>
+              <span class="flow-node">越界判定</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="subhead-row">
+          <h3>工作台由五个模块构成</h3>
+          <p>ONE STATIC PAGE / FIVE MODULES</p>
+        </div>
+
+        <div class="modules-grid">
+          <article class="module-card">
+            <span class="module-num" aria-hidden="true">01</span>
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-play"></use></svg></span>
+            <h3>数据与回放</h3>
+            <p>显示数据来源与试次数；支持导入真实预测 CSV、载入调试序列，以及开始、暂停、单步与重置。</p>
+            <div class="module-tags">
+              <span class="tag">来源标识</span>
+              <span class="tag">单步执行</span>
+              <span class="tag">自动停止</span>
+            </div>
+          </article>
+
+          <article class="module-card">
+            <span class="module-num" aria-hidden="true">02</span>
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-hand"></use></svg></span>
+            <h3>人工调试</h3>
+            <p>“左转 / 前进 / 右转”三个按钮采用与预测完全相同的运动规则，用于核对朝向与位置。</p>
+            <div class="module-tags">
+              <span class="tag mint">不计入正式试次</span>
+              <span class="tag">运动规则一致</span>
+            </div>
+          </article>
+
+          <article class="module-card">
+            <span class="module-num" aria-hidden="true">03</span>
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-grid"></use></svg></span>
+            <h3>二维场地</h3>
+            <p>Canvas 绘制起点、已执行轨迹与轮椅当前位置；图例与运动规则直接标注在场地下方。</p>
+            <div class="module-tags">
+              <span class="tag">起点 (480, 500)</span>
+              <span class="tag">轨迹回放</span>
+            </div>
+          </article>
+
+          <article class="module-card">
+            <span class="module-num" aria-hidden="true">04</span>
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-activity"></use></svg></span>
+            <h3>当前状态</h3>
+            <p>状态徽标、当前试次、执行进度、预测方向、真实标签、得分、位置与朝向集中呈现。</p>
+            <div class="state-pills">
+              <span class="state-pill">未开始</span>
+              <span class="state-pill is-live">就绪</span>
+              <span class="state-pill">回放中</span>
+              <span class="state-pill">已暂停</span>
+              <span class="state-pill">已完成</span>
+              <span class="state-pill">已停止</span>
+            </div>
+          </article>
+
+          <article class="module-card">
+            <span class="module-num" aria-hidden="true">05</span>
+            <span class="module-icon" aria-hidden="true"><svg class="icon"><use href="#i-table"></use></svg></span>
+            <h3>执行记录</h3>
+            <p>表格记录试次、预测、真实、朝向与结果；最近 30 条倒序显示，导出文件包含全部试次。</p>
+            <div class="mini-table" aria-hidden="true">
+              <span>试次</span><span>预测</span><span>真实</span><span>朝向</span><span>结果</span>
+              <span>01</span><span>left</span><span>left</span><span>−30°</span><span class="ok">正常</span>
+            </div>
+          </article>
+        </div>
+
+        <div class="debug-strip">
+          <span class="debug-label"><span class="live-dot" aria-hidden="true"></span>BUILT-IN DEBUG SEQUENCE</span>
+          <div class="debug-sequence" aria-label="内置调试序列">
+            <code>left</code><span class="flow-arrow">→</span>
+            <code>right</code><span class="flow-arrow">→</span>
+            <code>left</code>
+          </div>
+          <span class="debug-note">页面启动即载入 · 3 试次 · 无需真实预测文件即可验证仿真端</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 理论指导 -->
+    <section class="section section-dark" id="theory">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">02 / THEORY</span>
+            <h2 class="section-title">理论指导</h2>
+          </div>
+          <p class="section-sub">从神经生理机制、解码算法到运动学控制模型，理解“为什么可以解码”，以及“为什么误差会累积”。</p>
+        </div>
+
+        <div class="theory-grid">
+          <article class="theory-card span-7">
+            <span class="card-kicker">NEUROPHYSIOLOGY</span>
+            <h3>ERD / ERS：运动想象的生理指纹</h3>
+            <p>
+              感觉运动皮层在没有实际动作时呈现 mu（8–12 Hz）与 beta（13–30 Hz）节律。想象一侧肢体运动时，对侧初级运动皮层的节律性同步被打破，功率下降，形成事件相关去同步（ERD）。
+            </p>
+
+            <svg class="signal-chart" viewBox="0 0 620 158" aria-label="ERD 与 ERS 功率变化示意图" role="img">
+              <defs>
+                <pattern id="chartGrid" width="31" height="31" patternUnits="userSpaceOnUse">
+                  <path d="M31 0H0V31" fill="none" stroke="rgba(139,170,201,.09)" stroke-width="1"/>
+                </pattern>
+                <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stop-color="#58c8ff"/>
+                  <stop offset=".48" stop-color="#55e6c4"/>
+                  <stop offset="1" stop-color="#8d7dff"/>
+                </linearGradient>
+              </defs>
+              <rect width="620" height="158" rx="8" fill="#07121e"/>
+              <rect width="620" height="158" rx="8" fill="url(#chartGrid)"/>
+              <rect x="243" y="9" width="142" height="140" fill="rgba(85,230,196,.045)"/>
+              <line x1="243" y1="9" x2="243" y2="149" stroke="rgba(85,230,196,.23)" stroke-dasharray="3 5"/>
+              <line x1="385" y1="9" x2="385" y2="149" stroke="rgba(141,125,255,.23)" stroke-dasharray="3 5"/>
+              <path class="signal-wave" d="M0 83 C 15 53, 28 113, 43 83 S 71 53, 86 83 S 114 113, 129 83 S 157 53, 172 83 S 200 113, 215 83 S 236 64, 250 83" fill="none" stroke="url(#waveGrad)" stroke-width="2.4" stroke-linecap="round"/>
+              <path class="signal-wave" d="M250 83 C 262 74, 273 92, 286 83 S 310 74, 323 83 S 347 92, 360 83 S 374 76, 385 83" fill="none" stroke="#55e6c4" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+              <path class="signal-wave" d="M385 83 C 399 67, 412 99, 426 83 S 453 61, 468 83 S 495 103, 510 83 S 537 68, 552 83 S 581 96, 596 83 S 611 75, 620 83" fill="none" stroke="url(#waveGrad)" stroke-width="2.4" stroke-linecap="round"/>
+              <text x="254" y="24" fill="#75e9d2" font-family="Consolas,monospace" font-size="8" letter-spacing="1">ERD ↓</text>
+              <text x="396" y="24" fill="#a798ff" font-family="Consolas,monospace" font-size="8" letter-spacing="1">ERS ↑</text>
+              <text x="12" y="145" fill="#54687f" font-family="Consolas,monospace" font-size="7" letter-spacing=".6">MI CUE</text>
+              <text x="568" y="145" fill="#54687f" font-family="Consolas,monospace" font-size="7" letter-spacing=".6">TIME</text>
+            </svg>
+
+            <div class="band-grid">
+              <div class="band-item">
+                <small>MU RHYTHM</small>
+                <strong>8–12 Hz</strong>
+                <em>ERD ↓</em>
+              </div>
+              <div class="band-item">
+                <small>BETA RHYTHM</small>
+                <strong>13–30 Hz</strong>
+                <em>ERS ↑</em>
+              </div>
+            </div>
+
+            <div class="signal-notes">
+              <span class="signal-note"><b>对侧激活</b> · 想象右手 → 左侧 C3 附近功率下降</span>
+              <span class="signal-note"><b>空间差异</b> · CSP 空间滤波有效的前提</span>
+            </div>
+          </article>
+
+          <article class="theory-card span-5 limit-card">
+            <span class="card-kicker">USER VARIABILITY</span>
+            <h3>并非所有人都能稳定产生可分类的 MI 模式</h3>
+            <div class="limit-value">15–30<em>%</em></div>
+            <p class="limit-sub">健康受试者中约 15%–30% 存在 BCI illiteracy，即运动想象模式难以被稳定分类。</p>
+
+            <div class="accuracy-grid">
+              <div class="accuracy-item">
+                <strong>70–90%</strong>
+                <span>二分类典型准确率</span>
+              </div>
+              <div class="accuracy-item">
+                <strong>60–75%</strong>
+                <span>四分类典型准确率</span>
+              </div>
+            </div>
+
+            <p class="theory-quote">“准确率不高”往往是用户侧的编码能力问题，而非单纯的模型问题。</p>
+            <p class="theory-footnote">因此，实验评价不只看总体准确率，也要观察类别灵敏度、特异度与个体差异。</p>
+          </article>
+
+          <article class="theory-card span-7">
+            <span class="card-kicker">DECODING PIPELINE</span>
+            <h3>从脑电到二分类指令</h3>
+            <p>
+              CSP（共空间模式）利用两类任务在空间分布上的差异构造空间滤波器，让不同类别的方差差异被放大。分类器随后输出 left / right 以及相对置信度 score。
+            </p>
+
+            <div class="decode-flow" aria-label="解码流程">
+              <div class="decode-node">
+                <small>INPUT</small>
+                <b>多导 EEG</b>
+              </div>
+              <span class="decode-sep">→</span>
+              <div class="decode-node">
+                <small>FILTER</small>
+                <b>8–30 Hz</b>
+              </div>
+              <span class="decode-sep">→</span>
+              <div class="decode-node">
+                <small>SPATIAL</small>
+                <b>CSP</b>
+              </div>
+              <span class="decode-sep">→</span>
+              <div class="decode-node">
+                <small>MODEL</small>
+                <b>分类器</b>
+              </div>
+              <span class="decode-sep">→</span>
+              <div class="decode-node is-output">
+                <small>OUTPUT</small>
+                <b>left / right</b>
+              </div>
+            </div>
+
+            <div class="metric-chips" aria-label="常用评价指标">
+              <span class="metric-chip">准确率</span>
+              <span class="metric-chip">灵敏度</span>
+              <span class="metric-chip">特异度</span>
+              <span class="metric-chip">Cohen's κ</span>
+              <span class="metric-chip">ITR</span>
+            </div>
+          </article>
+
+          <article class="theory-card span-5">
+            <span class="card-kicker">KINEMATICS</span>
+            <h3>转向 30°，前进 36 px</h3>
+            <p>left 为 −30°，right 为 +30°。每次转向后立即执行一次前进，因此轨迹由短直线段组成。</p>
+
+            <div class="kinematics-layout">
+              <div class="angle-figure" aria-hidden="true">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="43" fill="none" stroke="rgba(141,171,204,.18)"/>
+                  <circle cx="60" cy="60" r="30" fill="none" stroke="rgba(141,171,204,.1)"/>
+                  <line x1="60" y1="60" x2="60" y2="20" stroke="#55e6c4" stroke-width="2" stroke-linecap="round"/>
+                  <line x1="60" y1="60" x2="81.5" y2="37.5" stroke="#8d7dff" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 4"/>
+                  <line x1="60" y1="60" x2="38.5" y2="37.5" stroke="#ff7f66" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 4"/>
+                  <path d="M60 33 A27 27 0 0 1 78.6 43.4" fill="none" stroke="#8d7dff" stroke-width="1"/>
+                  <path d="M60 33 A27 27 0 0 0 41.4 43.4" fill="none" stroke="#ff7f66" stroke-width="1"/>
+                  <circle cx="60" cy="60" r="3" fill="#55e6c4"/>
+                  <text x="86" y="37" fill="#a798ff" font-family="Consolas,monospace" font-size="7">+30°</text>
+                  <text x="10" y="37" fill="#ff9b87" font-family="Consolas,monospace" font-size="7">−30°</text>
+                  <text x="57" y="12" fill="#6c8098" font-family="Consolas,monospace" font-size="6">0°</text>
+                </svg>
+              </div>
+              <div class="kinematics-stats">
+                <div class="kinematics-stat"><b>30°</b><span>单步转向角</span></div>
+                <div class="kinematics-stat"><b>36 px</b><span>转向后前进</span></div>
+                <div class="kinematics-stat"><b>28 px</b><span>安全边距</span></div>
+              </div>
+            </div>
+            <p class="theory-footnote">连续同向指令沿圆弧行进，交替指令则近似直线——轨迹曲率可以直接反推指令序列的连续性。</p>
+          </article>
+
+          <article class="theory-card span-12">
+            <div class="metric-strip" aria-label="控制层评价指标">
+              <div class="metric-strip-item"><span>ACCURACY</span><strong>准确率</strong></div>
+              <div class="metric-strip-item"><span>SENSITIVITY</span><strong>灵敏度</strong></div>
+              <div class="metric-strip-item"><span>SPECIFICITY</span><strong>特异度</strong></div>
+              <div class="metric-strip-item"><span>AGREEMENT</span><strong>Cohen's κ</strong></div>
+              <div class="metric-strip-item"><span>THROUGHPUT</span><strong>ITR</strong></div>
+              <div class="metric-strip-item"><span>SAFETY</span><strong>越界率</strong></div>
+              <div class="metric-strip-item"><span>TERMINATION</span><strong>平均终止试次</strong></div>
+            </div>
+            <p class="theory-footnote">解码端参数与仿真端固定参数应同时记录，才能解释差异来自模型、用户侧编码能力，还是控制层的误差累积。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 操作步骤 -->
+    <section class="section" id="workflow">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">03 / WORKFLOW</span>
+            <h2 class="section-title">操作步骤</h2>
+          </div>
+          <p class="section-sub">先用内置调试序列验证仿真端，再导入真实预测文件。整个过程不循环播放，越界即停。</p>
+        </div>
+
+        <div class="workflow-grid">
+          <aside class="workflow-aside">
+            <div class="workflow-sticky">
+              <div class="big-step">08<em> STEPS</em></div>
+              <h3>先验证链路，再观察误差</h3>
+              <p>调试序列用于排除仿真端缺陷；真实预测文件用于观察解码误差如何沿控制链路传播。</p>
+              <div class="workflow-tip"><b>提示：</b>导入会停止当前回放并清空旧结果，请先导出需要保留的历史记录。</div>
+              <a class="btn btn-primary" href="https://g3068805045-cmyk.github.io/bci-wheelchair-demo/" target="_blank" rel="noopener noreferrer">
+                实验平台
+                <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+              </a>
+            </div>
+          </aside>
+
+          <div class="steps">
+            <article class="step-card">
+              <span class="step-index">01</span>
+              <div class="step-body">
+                <div class="step-head"><h3>打开工作台</h3></div>
+                <p>访问实验平台，或直接双击本地 <code>index.html</code>。页面自动载入 <code>left / right / left</code> 调试序列，状态显示“就绪”，试次数为 3。</p>
+              </div>
+            </article>
+
+            <article class="step-card">
+              <span class="step-index">02</span>
+              <div class="step-body">
+                <div class="step-head">
+                  <h3>调试序列回放</h3>
+                  <div class="step-badges"><span class="tag mint">验证仿真端</span></div>
+                </div>
+                <p>用“单步执行”逐步走完三个试次，观察二维场地上的轨迹与朝向；再用“开始回放”连续播放一次，确认自动回放、自动停止行为正常。</p>
+                <p>此步骤用于排除仿真端本身的缺陷。</p>
+              </div>
+            </article>
+
+            <article class="step-card">
+              <span class="step-index">03</span>
+              <div class="step-body">
+                <div class="step-head">
+                  <h3>人工调试对照</h3>
+                  <div class="step-badges"><span class="tag amber">不计入试次</span></div>
+                </div>
+                <p>点击“重置”后，用“左转 / 前进 / 右转”手动驱动轮椅，体会“转向 30° + 前进 36 px”的合成效果，核对朝向指示是否与预期一致。</p>
+                <p>人工操作不影响统计。</p>
+              </div>
+            </article>
+
+            <article class="step-card is-highlight">
+              <span class="step-index">04</span>
+              <div class="step-body">
+                <div class="step-head">
+                  <h3>导入真实预测文件</h3>
+                  <div class="step-badges"><span class="tag coral">会清空旧结果</span></div>
+                </div>
+                <p>点击“导入真实预测 CSV”，选择研究生 A 当前运行生成的预测文件。导入会停止当前回放并清空旧结果；数据来源标识将由“调试数据”变为“预测文件”。</p>
+              </div>
+            </article>
+
+            <article class="step-card">
+              <span class="step-index">05</span>
+              <div class="step-body">
+                <div class="step-head">
+                  <h3>执行回放并观察</h3>
+                  <div class="step-badges"><span class="tag">900 ms</span><span class="tag mint">自动停止</span></div>
+                </div>
+                <p>先“单步执行”确认首个试次的转向方向正确，再“开始回放”完成全部试次。回放间隔约 900 ms；中途可用“暂停”观察瞬时状态，执行完毕后自动停止，不循环播放。</p>
+              </div>
+            </article>
+
+            <article class="step-card is-highlight">
+              <span class="step-index">06</span>
+              <div class="step-body">
+                <div class="step-head">
+                  <h3>记录异常</h3>
+                  <div class="step-badges"><span class="tag coral">越界即停</span></div>
+                </div>
+                <p>若出现越界，页面提示“第 N 个试次后轮椅越界，回放已停止；预测结果未被替换”。记录该试次编号，并分析是解码错误还是步数过多导致自然出界。</p>
+              </div>
+            </article>
+
+            <article class="step-card">
+              <span class="step-index">07</span>
+              <div class="step-body">
+                <div class="step-head">
+                  <h3>导出与评价</h3>
+                  <div class="step-badges"><span class="tag mint">全量导出</span></div>
+                </div>
+                <p>点击“导出 CSV”保存执行记录，随后统计准确率、各类别的灵敏度 / 特异度、Cohen's kappa、ITR、越界率与平均终止试次。</p>
+              </div>
+            </article>
+
+            <article class="step-card">
+              <span class="step-index">08</span>
+              <div class="step-body">
+                <div class="step-head">
+                  <h3>撰写实验报告</h3>
+                  <div class="step-badges"><span class="tag">可复现</span></div>
+                </div>
+                <p>说明解码端参数（导联、滤波频段、CSP 分量数、分类器、交叉验证方式）、仿真端固定参数、轨迹图、混淆矩阵与控制层指标，并讨论误差传播与改进方案。</p>
+                <div class="step-checklist">
+                  <span>导联</span><span>滤波频段</span><span>CSP 分量数</span><span>分类器</span><span>交叉验证</span><span>混淆矩阵</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 参数速查 -->
+    <section class="section" id="parameters">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">04 / PARAMETERS</span>
+            <h2 class="section-title">关键参数速查</h2>
+          </div>
+          <p class="section-sub">仿真端使用固定参数保证可复现。运动规则、安全边距和回放节奏都会直接影响轨迹与评价结果。</p>
+        </div>
+
+        <div class="param-grid">
+          <div class="table-card">
+            <div class="table-card-head">
+              <strong>仿真端固定参数</strong>
+              <span>FIXED / REPRODUCIBLE</span>
+            </div>
+            <div class="table-scroll">
+              <table class="param-table">
+                <thead>
+                  <tr>
+                    <th scope="col">参数</th>
+                    <th scope="col">取值</th>
+                    <th scope="col">说明</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>场地尺寸</td>
+                    <td>960 × 600 px</td>
+                    <td>Canvas 基准尺寸，按容器等比缩放</td>
+                  </tr>
+                  <tr>
+                    <td>起点 / 初始朝向</td>
+                    <td>(480, 500) / 0°</td>
+                    <td>位于场地下方中部，朝向屏幕上方</td>
+                  </tr>
+                  <tr>
+                    <td>单步转向角</td>
+                    <td>30°</td>
+                    <td><code>left</code> 为 −30°（逆时针），<code>right</code> 为 +30°</td>
+                  </tr>
+                  <tr>
+                    <td>单步前进距离</td>
+                    <td>36 px</td>
+                    <td>转向后立即执行一次前进</td>
+                  </tr>
+                  <tr>
+                    <td>自动回放间隔</td>
+                    <td>900 ms</td>
+                    <td>对应每次指令的决策周期</td>
+                  </tr>
+                  <tr>
+                    <td>安全边距</td>
+                    <td>28 px</td>
+                    <td>超出即判定越界并停止回放</td>
+                  </tr>
+                  <tr>
+                    <td>记录表显示条数</td>
+                    <td>最近 30 条</td>
+                    <td>倒序显示；导出文件包含全部试次</td>
+                  </tr>
+                  <tr>
+                    <td>回放结束行为</td>
+                    <td>自动停止</td>
+                    <td>不循环播放</td>
+                  </tr>
+                  <tr>
+                    <td>内置调试序列</td>
+                    <td>left / right / left</td>
+                    <td>启动即载入，共 3 个试次</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="side-stack">
+            <article class="safety-card">
+              <span class="card-kicker">SAFETY MARGIN</span>
+              <div class="safety-value">28 <em>PX</em></div>
+              <p>越界即停是系统的安全策略，而不是报错。它把“解码错误”翻译成可量化的“可达性问题”。</p>
+            </article>
+
+            <article class="info-card">
+              <span class="card-kicker">CSV INTERFACE</span>
+              <h3>导入前请确认</h3>
+              <div class="info-rule-list">
+                <div class="info-rule">
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span><code>predicted_label</code> 只能是 <code>left</code> 或 <code>right</code>。</span>
+                </div>
+                <div class="info-rule">
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span>出现 <code>forward</code>、<code>up</code> 或大小写异常都会中断回放。</span>
+                </div>
+                <div class="info-rule">
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span>CSV 必须为 UTF-8；Windows Excel 导出可能是 GBK 或带 BOM。</span>
+                </div>
+                <div class="info-rule">
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span>每次导入都会停止回放并清空旧记录，需要历史结果请先导出。</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head">
+            <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <strong>motion-rule.js</strong>
+            <span>固定运动学规则</span>
+          </div>
+          <pre class="code-block"><code><span class="tok-com">// 先转向，再前进；heading 以 0° 朝上为基准</span>
+<span class="tok-key">const</span> turn = predictedLabel === <span class="tok-num">"left"</span> ? -<span class="tok-num">30</span> : <span class="tok-num">30</span>;
+heading += turn;
+
+<span class="tok-key">const</span> rad = heading * Math.PI / <span class="tok-num">180</span>;
+x += <span class="tok-num">36</span> * Math.sin(rad);
+y -= <span class="tok-num">36</span> * Math.cos(rad);
+
+<span class="tok-com">// 任一位置超出 28 px 安全边距 → 越界，回放停止</span>
+<span class="tok-key">if</span> (isOutsideSafeArea(x, y)) stop();</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 观察与分析 -->
+    <section class="section" id="observations">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">05 / OBSERVATION</span>
+            <h2 class="section-title">观察与分析要点</h2>
+          </div>
+          <p class="section-sub">轨迹形态、误差累积与越界行为，是把“分类结果”转化为“控制层证据”的观察窗口。</p>
+        </div>
+
+        <div class="analysis-grid">
+          <article class="analysis-card">
+            <span class="analysis-icon" aria-hidden="true"><svg class="icon"><use href="#i-route"></use></svg></span>
+            <h3>轨迹形态</h3>
+            <p>连续同向指令会使轮椅沿圆弧行进（每步 30°），而非直线；交替指令则近似直线。观察轨迹曲率可反推指令序列的连续性。</p>
+          </article>
+
+          <article class="analysis-card">
+            <span class="analysis-icon" aria-hidden="true"><svg class="icon"><use href="#i-chart"></use></svg></span>
+            <h3>误差累积</h3>
+            <p>对比“全对序列”与“含 1 次误判序列”的终点位置差。单次误判不仅偏移一步，还会改变后续所有步的位移方向。</p>
+          </article>
+
+          <article class="analysis-card">
+            <span class="analysis-icon" aria-hidden="true"><svg class="icon"><use href="#i-shield"></use></svg></span>
+            <h3>越界行为</h3>
+            <p>越界即停是系统的安全策略而非报错。它把“解码错误”翻译成了可量化的“可达性问题”。</p>
+          </article>
+
+          <article class="analysis-card">
+            <span class="analysis-icon" aria-hidden="true"><svg class="icon"><use href="#i-target"></use></svg></span>
+            <h3>预测 vs 真实</h3>
+            <p>状态面板同时显示预测与真实标签，导出文件同时保留两列。二者不一致处即为混淆矩阵的非对角元素。</p>
+          </article>
+
+          <article class="analysis-card">
+            <span class="analysis-icon" aria-hidden="true"><svg class="icon"><use href="#i-scale"></use></svg></span>
+            <h3>步长的意义</h3>
+            <p>36 px 步长与 960 × 600 场地意味着约 25 步即横穿全场。步长越大，单步误判的代价越高——这是“指令粒度”设计的核心权衡。</p>
+          </article>
+
+          <article class="analysis-card">
+            <span class="analysis-icon" aria-hidden="true"><svg class="icon"><use href="#i-search"></use></svg></span>
+            <h3>得分的使用</h3>
+            <p>可尝试按 score 阈值过滤低置信试次后重新回放，观察轨迹是否更稳；但必须声明该 score 未校准，结论仅具相对意义。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 FAQ -->
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="faq-grid">
+          <aside class="faq-side">
+            <span class="section-kicker">06 / NOTES</span>
+            <h2>注意事项<br>与常见问题</h2>
+            <p>导入、状态、编码与数据合规，都会影响一次实验是否可复现。开始前先读一遍。</p>
+            <a class="faq-side-link" href="https://g3068805045-cmyk.github.io/bci-wheelchair-demo/" target="_blank" rel="noopener noreferrer">
+              直接进入实验平台
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+            </a>
+          </aside>
+
+          <div class="faq-list">
+            <details class="faq-item" open>
+              <summary>导入新文件会清空历史结果吗？</summary>
+              <div class="faq-answer">
+                <p>会。每次导入新文件都会停止回放并清除旧的执行记录。需要历史结果请先导出。</p>
+                <p class="note">建议流程：先导出 → 再导入 → 重新回放。</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>回放中哪些按钮会被禁用？</summary>
+              <div class="faq-answer">
+                <p>回放进行中，“导入”与“载入调试序列”会被禁用；完成后人工调试按钮会被禁用，需先“重置”。</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>为什么预测标签非法会中断回放？</summary>
+              <div class="faq-answer">
+                <p><code>predicted_label</code> 只能是 <code>left</code> / <code>right</code>，出现 <code>forward</code>、<code>up</code> 或大小写异常都会中断回放。三分类（含“前进”）的解码端需先映射为二分类指令，或扩展仿真端。</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>CSV 打开后中文乱码怎么办？</summary>
+              <div class="faq-answer">
+                <p>CSV 必须存为 <strong>UTF-8</strong>。Windows 下 Excel 默认导出可能是 GBK 或带 BOM，建议用文本编辑器或脚本显式指定 UTF-8。</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>可以提交真实受试者数据到公开仓库吗？</summary>
+              <div class="faq-answer">
+                <p>不可以。不要把真实受试者数据或未脱敏脑电文件提交到公开仓库。工作台本身不上传数据，但仓库提交环节仍需自律。</p>
+                <p class="note"><strong>数据合规：</strong>本地读取 ≠ 可以公开分享。</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary>刷新页面后结果为什么不见了？</summary>
+              <div class="faq-answer">
+                <p>这是纯前端限制：刷新页面即回到初始状态，所有结果都在内存中。实验过程中务必及时导出 CSV。</p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 启动 CTA -->
+    <section class="cta-section" aria-labelledby="cta-title">
+      <div class="container">
+        <div class="cta-card">
+          <div class="cta-copy">
+            <span class="eyebrow"><span class="pulse-dot" aria-hidden="true"></span> READY TO RUN</span>
+            <h2 id="cta-title">从一次想象，到一次安全移动。</h2>
+            <p>进入实验平台，先用 left / right / left 调试序列验证仿真端，再导入真实预测文件，观察误差如何沿控制链路传播。</p>
+          </div>
+          <div class="cta-action">
+            <a class="btn btn-primary btn-lg" href="https://g3068805045-cmyk.github.io/bci-wheelchair-demo/" target="_blank" rel="noopener noreferrer">
+              实验平台
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+            </a>
+            <span class="cta-url">g3068805045-cmyk.github.io/bci-wheelchair-demo/</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-main">
+        <div class="footer-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg class="icon"><use href="#i-wave"></use></svg>
+          </span>
+          <div>
+            <h3>脑机接口实验台</h3>
+            <p>运动想象解码 × 轮椅运动控制。纯静态、离线 CSV、浏览器本地读取；页面不采集、不上传任何实验数据。</p>
+          </div>
+        </div>
+        <nav class="footer-links" aria-label="页脚导航">
+          <a href="#overview">实验介绍</a>
+          <a href="#theory">理论指导</a>
+          <a href="#workflow">操作步骤</a>
+          <a href="#parameters">参数速查</a>
+          <a href="#faq">常见问题</a>
+          <a class="footer-social" href="https://g3068805045-cmyk.github.io/bci-wheelchair-demo/" target="_blank" rel="noopener noreferrer">
+            实验平台
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+          </a>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year">2026</span> BCI WHEELCHAIR LAB · 教学演示项目</span>
+        <span>纯前端运行 · 刷新即重置 · 请及时导出结果</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const header = document.querySelector(".site-header");
+      const navToggle = document.querySelector(".nav-toggle");
+      const mainNav = document.querySelector("#main-nav");
+      const navLinks = Array.from(document.querySelectorAll(".main-nav a[href^='#']"));
+      const sections = navLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      const setHeaderState = () => {
+        if (header) header.classList.toggle("is-scrolled", window.scrollY > 14);
+      };
+
+      const setActiveLink = () => {
+        const marker = 150;
+        let current = sections[0];
+
+        sections.forEach((section) => {
+          if (section.getBoundingClientRect().top <= marker) current = section;
+        });
+
+        if (!current) return;
+        navLinks.forEach((link) => {
+          const active = link.getAttribute("href") === `#${current.id}`;
+          link.classList.toggle("is-active", active);
+          if (active) link.setAttribute("aria-current", "location");
+          else link.removeAttribute("aria-current");
+        });
+      };
+
+      let ticking = false;
+      const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          setHeaderState();
+          setActiveLink();
+          ticking = false;
+        });
+      };
+
+      const closeNav = () => {
+        if (!mainNav || !navToggle) return;
+        mainNav.classList.remove("is-open");
+        navToggle.setAttribute("aria-expanded", "false");
+        navToggle.setAttribute("aria-label", "展开导航");
+        navToggle.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg>';
+      };
+
+      if (navToggle && mainNav) {
+        navToggle.addEventListener("click", () => {
+          const open = mainNav.classList.toggle("is-open");
+          navToggle.setAttribute("aria-expanded", String(open));
+          navToggle.setAttribute("aria-label", open ? "收起导航" : "展开导航");
+          navToggle.innerHTML = open
+            ? '<svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>'
+            : '<svg class="icon" aria-hidden="true"><use href="#i-menu"></use></svg>';
+        });
+
+        mainNav.addEventListener("click", (event) => {
+          if (event.target.closest("a")) closeNav();
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!mainNav.classList.contains("is-open")) return;
+          if (!event.target.closest(".site-header")) closeNav();
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeNav();
+        });
+      }
+
+      window.addEventListener("scroll", onScroll, { passive: true });
+      setHeaderState();
+      setActiveLink();
+
+      // Hero canvas：绘制 960×600 的场地与 left / right / left 轨迹。
+      const canvas = document.querySelector("#trajectoryCanvas");
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const FIELD = { width: 960, height: 600, step: 36, margin: 28 };
+      const START = { x: 480, y: 500 };
+      const COMMANDS = ["left", "right", "left"];
+      const points = [];
+      let heading = 0;
+      let x = START.x;
+      let y = START.y;
+
+      points.push({ x, y, heading, command: "start" });
+      COMMANDS.forEach((command) => {
+        heading += command === "left" ? -30 : 30;
+        const rad = (heading * Math.PI) / 180;
+        x += FIELD.step * Math.sin(rad);
+        y -= FIELD.step * Math.cos(rad);
+        points.push({ x, y, heading, command });
+      });
+
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const animationStart = performance.now();
+      const STEP_DURATION = 760;
+      const HOLD_DURATION = 2800;
+      const TOTAL = COMMANDS.length * STEP_DURATION;
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.round(rect.width * ratio));
+        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+      }
+
+      function pointAt(progress) {
+        if (progress >= COMMANDS.length) {
+          const last = points[points.length - 1];
+          return { x: last.x, y: last.y, heading: last.heading, index: COMMANDS.length };
+        }
+        const index = Math.floor(progress);
+        const fraction = progress - index;
+        const from = points[index];
+        const to = points[index + 1];
+        return {
+          x: from.x + (to.x - from.x) * fraction,
+          y: from.y + (to.y - from.y) * fraction,
+          heading: to.heading,
+          index
+        };
+      }
+
+      function drawWheelchair(cx, cy, angle) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate((angle * Math.PI) / 180);
+        ctx.scale(1.6, 1.6);
+
+        ctx.shadowColor = "rgba(255,127,102,.7)";
+        ctx.shadowBlur = 12;
+
+        // 座椅主体
+        ctx.fillStyle = "#ff8d75";
+        ctx.beginPath();
+        ctx.roundRect(-8, -11, 16, 23, 4);
+        ctx.fill();
+
+        // 座垫与靠背
+        ctx.fillStyle = "#ffd1c8";
+        ctx.beginPath();
+        ctx.roundRect(-5, -8, 10, 5, 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.roundRect(-5, 2, 10, 6, 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        // 两侧轮子
+        ctx.strokeStyle = "#ffc0b3";
+        ctx.lineWidth = 1.6;
+        [-12, 12].forEach((wx) => {
+          ctx.beginPath();
+          ctx.arc(wx, 3, 4.2, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+
+        // 朝向线
+        ctx.strokeStyle = "rgba(255, 233, 224, .8)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(0, -13);
+        ctx.lineTo(0, -18);
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function draw(progress) {
+        const sx = canvas.width / FIELD.width;
+        const sy = canvas.height / FIELD.height;
+        ctx.setTransform(sx, 0, 0, sy, 0, 0);
+        ctx.clearRect(0, 0, FIELD.width, FIELD.height);
+
+        // 场地背景
+        const bg = ctx.createRadialGradient(480, 530, 20, 480, 280, 650);
+        bg.addColorStop(0, "rgba(14, 43, 44, .72)");
+        bg.addColorStop(.52, "rgba(7, 23, 30, .96)");
+        bg.addColorStop(1, "rgba(4, 13, 22, 1)");
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, FIELD.width, FIELD.height);
+
+        // 网格
+        ctx.lineWidth = 1;
+        for (let gx = 0; gx <= FIELD.width; gx += 60) {
+          ctx.strokeStyle = gx % 120 === 0 ? "rgba(101, 145, 164, .16)" : "rgba(101, 145, 164, .07)";
+          ctx.beginPath();
+          ctx.moveTo(gx, 0);
+          ctx.lineTo(gx, FIELD.height);
+          ctx.stroke();
+        }
+        for (let gy = 0; gy <= FIELD.height; gy += 60) {
+          ctx.strokeStyle = gy % 120 === 0 ? "rgba(101, 145, 164, .16)" : "rgba(101, 145, 164, .07)";
+          ctx.beginPath();
+          ctx.moveTo(0, gy);
+          ctx.lineTo(FIELD.width, gy);
+          ctx.stroke();
+        }
+
+        // 安全边距
+        ctx.save();
+        ctx.setLineDash([7, 7]);
+        ctx.strokeStyle = "rgba(255, 200, 107, .28)";
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(
+          FIELD.margin,
+          FIELD.margin,
+          FIELD.width - FIELD.margin * 2,
+          FIELD.height - FIELD.margin * 2
+        );
+        ctx.restore();
+
+        // 全路径作为背景
+        ctx.save();
+        ctx.strokeStyle = "rgba(85, 230, 196, .13)";
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+        ctx.stroke();
+        ctx.restore();
+
+        const current = pointAt(progress);
+        const fullIndex = Math.floor(progress);
+
+        // 已执行路径
+        ctx.save();
+        ctx.strokeStyle = "rgba(85, 230, 196, .9)";
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.shadowColor = "rgba(85, 230, 196, .75)";
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i <= fullIndex; i += 1) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+        ctx.lineTo(current.x, current.y);
+        ctx.stroke();
+        ctx.restore();
+
+        // 起点
+        ctx.fillStyle = "rgba(85, 230, 196, .12)";
+        ctx.beginPath();
+        ctx.arc(START.x, START.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(85, 230, 196, .8)";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(START.x, START.y, 5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 试次节点
+        ctx.font = "10px Consolas, monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        points.slice(1).forEach((point, index) => {
+          ctx.fillStyle = index < fullIndex ? "rgba(85, 230, 196, .9)" : "rgba(128, 159, 174, .28)";
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 3.1, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // 轮椅当前位置
+        drawWheelchair(current.x, current.y, current.heading);
+
+        // 标注
+        ctx.fillStyle = "rgba(149, 174, 190, .8)";
+        ctx.font = "10px Consolas, monospace";
+        ctx.textAlign = "left";
+        ctx.fillText("START", START.x + 13, START.y + 3);
+
+        // 中心坐标轴
+        ctx.strokeStyle = "rgba(149, 174, 190, .2)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(FIELD.width / 2 - 5, 20);
+        ctx.lineTo(FIELD.width / 2, 25);
+        ctx.lineTo(FIELD.width / 2 + 5, 20);
+        ctx.stroke();
+      }
+
+      function frame(now) {
+        if (reducedMotion.matches) {
+          draw(COMMANDS.length);
+          rafId = 0;
+          return;
+        }
+        const elapsed = (now - animationStart) % (TOTAL + HOLD_DURATION);
+        const progress = Math.min(COMMANDS.length, elapsed / STEP_DURATION);
+        draw(progress);
+        rafId = requestAnimationFrame(frame);
+      }
+
+      let rafId = 0;
+
+      function startAnimation() {
+        if (rafId || reducedMotion.matches) return;
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function stopAnimation() {
+        if (!rafId) return;
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+
+      const resizeObserver = new ResizeObserver(() => {
+        resizeCanvas();
+        draw(COMMANDS.length);
+      });
+
+      resizeCanvas();
+      draw(0);
+      resizeObserver.observe(canvas);
+
+      if (reducedMotion.matches) {
+        draw(COMMANDS.length);
+      } else {
+        const visibilityObserver = new IntersectionObserver((entries) => {
+          if (entries[0]?.isIntersecting) startAnimation();
+          else stopAnimation();
+        }, { threshold: 0.05 });
+        visibilityObserver.observe(canvas);
+      }
+
+      const year = document.querySelector("#year");
+      if (year) year.textContent = String(new Date().getFullYear());
+    })();
+  </script>
+</body>
+</html>
